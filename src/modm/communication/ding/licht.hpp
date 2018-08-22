@@ -16,7 +16,7 @@ namespace ding
 #include <stdint.h>
 
 #include "ding.hpp"
-#include "ding_message.hpp"
+#include "message.hpp"
 
 class LichtData {
 public:
@@ -77,6 +77,6 @@ private:
 
 } // namespace ding
 
-#include "ding_licht_impl.hpp"
+#include "licht_impl.hpp"
 
 #endif

@@ -10,8 +10,8 @@
 #include <modm/platform.hpp>
 #include <modm/driver/radio/nrf24/nrf24_phy.hpp>
 #include <modm/communication/ding/ding.hpp>
-#include <modm/communication/ding/ding_message.hpp>
-#include <modm/communication/ding/ding_licht.hpp>
+#include <modm/communication/ding/message.hpp>
+#include <modm/communication/ding/licht.hpp>
 #include <modm/board/board.hpp>
 #include <modm/architecture/interface/interrupt.hpp>
 

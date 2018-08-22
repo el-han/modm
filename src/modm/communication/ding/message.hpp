@@ -43,6 +43,6 @@ public:
 
 } // namespace modm
 
-#include "ding_message_impl.hpp"
+#include "message_impl.hpp"
 
 #endif

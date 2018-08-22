@@ -15,7 +15,7 @@
 #include <modm/driver/radio/nrf24/nrf24_phy.hpp>
 #include <modm/driver/radio/nrf24/nrf24_definitions.hpp>
 #include <modm/math/geometry/vector.hpp>
-#include "ding_message.hpp"
+#include "message.hpp"
 
 namespace ding
 {

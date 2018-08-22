@@ -11,7 +11,7 @@
 #   error "Don't include this file directly, use 'ding_message.hpp' instead!"
 #endif
 
-#include "ding_message.hpp"
+#include "message.hpp"
 
 modm::Vector<uint8_t, 32> ding::Message::getPacket() const
 {

@@ -11,7 +11,7 @@
 #   error "Don't include this file directly, use 'ding_licht.hpp' instead!"
 #endif
 
-#include "ding_licht.hpp"
+#include "licht.hpp"
 
 
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
