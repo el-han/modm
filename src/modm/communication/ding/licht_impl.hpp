@@ -63,12 +63,22 @@ ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::begin(ding::LichtData initial_color
 
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
 void
-ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::set(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
+ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::setRaw(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
 {
 	RED::set(r);
 	GREEN::set(g);
 	BLUE::set(b);
 	WHITE::set(w);
+}
+
+template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
+void
+ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::set(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
+{
+	RED::set(lut[r]);
+	GREEN::set(lut[g]);
+	BLUE::set(lut[b]);
+	WHITE::set(lut[w]);
 }
 
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
