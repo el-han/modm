@@ -14,6 +14,7 @@
 #include <modm/communication/ding/licht.hpp>
 #include <modm/board/board.hpp>
 #include <modm/architecture/interface/interrupt.hpp>
+#include <modm/processing/timer/timeout.hpp>
 
 #include <avr/sleep.h>
 #include <avr/wdt.h>
@@ -25,7 +26,7 @@ constexpr uint8_t  device  = 0xA3;
 constexpr uint8_t  channel = 96;
 
 constexpr ding::LichtData off   = ding::LichtData(0, 0, 0, 0);
-constexpr ding::LichtData night = ding::LichtData(255, 31, 0, 0);
+constexpr ding::LichtData night = ding::LichtData(255, 100, 0, 0);
 constexpr ding::LichtData day   = ding::LichtData(0, 0, 0, 255);
 
 ding::LichtData message = off;
@@ -40,7 +41,9 @@ typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
 typedef ding::Ding<Radio> Switch;
 
 volatile bool button = false;
-// volatile uint16_t downtime = 0;
+volatile bool sleep = true;
+
+uint16_t downtime = 0;
 
 void
 handleInterrupt()
@@ -74,15 +77,12 @@ handleInterrupt()
 void handleButton()
 {
 	if (!ButtonPin::read()) {
-// 		downtime = millis();
-// 	} else {
-// 		if ((millis() - downtime) > 1000) {
-// 			state = 2;
-// 		} else if ((millis() - downtime) > 400) {
-// 			state = 0;
-// 		} else {
-// 			state = 1;
-// 		}
+		sleep = false;
+		disableInterrupts();
+		modm::delayMilliseconds(100);
+		enableInterrupts();
+	} else {
+		sleep = true;
 		button = true;
 	}
 }
@@ -159,20 +159,26 @@ main()
 
 	while (1)
 	{
-		if (button) {
-
-			Switch::send(ding::LichtMessage(0x00, 0x02, message));
-
-			button = false;
-	// 		downtime = 0;
+		if (!button && !sleep) {
+			downtime++;
+			modm::delayMilliseconds(10);
 		}
 
-		modm::delayMilliseconds(100);
-		sleepMode();
+		if (button) {
+			if (downtime > 90)
+				Switch::send(ding::LichtMessage(0x00, 0x02, night));
+			else if (downtime > 30)
+				Switch::send(ding::LichtMessage(0x00, 0x02, off));
+			else
+				Switch::send(ding::LichtMessage(0x00, 0x02, day));
+			button = false;
+		}
 
-// 	if (downtime == 0)
-// 		enterSleep();
-
+		if (!button && sleep) {
+			downtime = 0;
+			modm::delayMilliseconds(100);
+			sleepMode();
+		}
 	}
 }
 
