@@ -16,8 +16,9 @@
 
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
 ding::LichtData ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::current_color;
+
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
-ding::LichtData ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::next_color;
+modm::atomic::Queue<ding::LichtData, 5> ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::received_color;
 
 ding::LichtMessage::LichtMessage(uint8_t destination_id, uint8_t source_id, LichtData rgbw)
 {
@@ -56,7 +57,7 @@ ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::begin(ding::LichtData initial_color
 	WHITE::setOutput(0);
 
 	current_color = ding::LichtData(0,0,0,0);
-	next_color = initial_color;
+	received_color.push(initial_color);
 
 	fade();
 }
@@ -84,27 +85,32 @@ ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::set(uint8_t r, uint8_t g, uint8_t b
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
 void ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::fade(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
 {
-	next_color = ding::LichtData(r,g,b,w);
+	received_color.push(ding::LichtData(r,g,b,w));
 	fade();
 }
 
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
 void ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::fade()
 {
-	// fade
-	if (current_color != next_color)
+	if(received_color.isEmpty())
+		return;
+
+	LichtData next_color;
+	while (received_color.isNotEmpty())
 	{
-		LichtData prev_color = current_color;
+		next_color = received_color.get();
+		received_color.pop();
+	}
+	LichtData prev_color = current_color;
 
-		for(float f=0.0; f<=1.0; f+=0.01) {
-			current_color.red   = prev_color.red   + (next_color.red   - prev_color.red  )*f;
-			current_color.green = prev_color.green + (next_color.green - prev_color.green)*f;
-			current_color.blue  = prev_color.blue  + (next_color.blue  - prev_color.blue )*f;
-			current_color.white = prev_color.white + (next_color.white - prev_color.white)*f;
+	for(float f=0.0; f<=1.0; f+=0.01) {
+		current_color.red   = prev_color.red   + (next_color.red   - prev_color.red  )*f;
+		current_color.green = prev_color.green + (next_color.green - prev_color.green)*f;
+		current_color.blue  = prev_color.blue  + (next_color.blue  - prev_color.blue )*f;
+		current_color.white = prev_color.white + (next_color.white - prev_color.white)*f;
 
-			set(current_color.red, current_color.green, current_color.blue, current_color.white);
-			modm::delayMilliseconds(15);
-		}
+		set(current_color.red, current_color.green, current_color.blue, current_color.white);
+		modm::delayMilliseconds(5);
 	}
 }
 
@@ -114,7 +120,9 @@ void ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::receive()
 	LichtMessage message = Ding<NRF24>::receive();
 
 	if (message.destination == ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::device_id && message.type == ding::MessageType::Rgbw)
-		next_color = message.getLichtData();
+		received_color.push(message.getLichtData());
+	else
+		setRaw(255,0,0,0);
 }
 
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>

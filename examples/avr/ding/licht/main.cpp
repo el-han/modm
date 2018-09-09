@@ -35,6 +35,8 @@ typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
 
 typedef ding::Licht<Radio, Red, Green, Blue, White> RGBWLicht;
 
+volatile bool received = false;
+
 void
 handleInterrupt()
 {
@@ -50,7 +52,9 @@ handleInterrupt()
 	}
 
 	if (status & (uint8_t)Radio::Status::RX_DR) {
+		RGBWLicht::receive();
 		Radio::clearInterrupt(Radio::InterruptFlag::RX_DR);
+		received = true;
 	}
 }
 
@@ -78,14 +82,12 @@ main()
 
 	RGBWLicht::startRX();
 
-	RGBWLicht::fade(0, 0, 0, 0);
-
 	while (1)
 	{
-		while (RGBWLicht::available()) {
-			RGBWLicht::receive();
+		if (received) {
+			received = false;
+			RGBWLicht::fade();
 		}
-		RGBWLicht::fade();
 	}
 }
 

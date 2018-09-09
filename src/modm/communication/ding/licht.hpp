@@ -10,13 +10,13 @@
 #ifndef MODM_DING_LICHT_HPP
 #define MODM_DING_LICHT_HPP
 
-namespace ding
-{
-
 #include <stdint.h>
+#include <modm/architecture/driver/atomic/queue.hpp>
 
 #include "ding.hpp"
 #include "message.hpp"
+
+namespace ding {
 
 class LichtData {
 public:
@@ -24,9 +24,6 @@ public:
 	uint8_t green;
 	uint8_t blue;
 	uint8_t white;
-
-	// LichtData(uint8_t r, uint8_t g, uint8_t b, uint8_t w) : red(r), green(g), blue(b), white(w) {};
-	// LichtData() : red(0), green(0), blue(0), white(0) {};
 
 	constexpr LichtData(uint8_t r, uint8_t g, uint8_t b, uint8_t w) : red(r), green(g), blue(b), white(w) {};
 	constexpr LichtData() : red(0), green(0), blue(0), white(0) {};
@@ -64,7 +61,8 @@ public:
 
 protected:
 	static LichtData current_color;
-	static LichtData next_color;
+
+	static modm::atomic::Queue<LichtData, 5> received_color;
 
 private:
 	static constexpr uint8_t lut[256] = {
