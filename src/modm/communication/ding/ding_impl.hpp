@@ -31,15 +31,14 @@ void ding::Ding<NRF24>::initializeRadio(uint8_t channel)
 
 	NRF24::clearInterrupt(NRF24::InterruptFlag::ALL);
 
-	NRF24::writeRegister(Register::SETUP_RETR, 0xff);
+	NRF24::writeRegister(Register::SETUP_RETR, 0x0f);
 
 	NRF24::writeRegister(Register::RF_CH, channel);
 
-	// NRF24::writeRegister(Register::SETUP_AW, 0x01);
+	NRF24::writeRegister(Register::SETUP_AW, 0x01);
 
-	// NRF24::writeRegister(0x11); // RX Pipe
-	NRF24::writeRegister(Register::DYNPD, 0x03);   // enable dynamic payload
-	NRF24::writeRegister(Register::FEATURE, 0x04); // enable dynamic payload on pipe 0 and 1
+	NRF24::writeRegister(Register::DYNPD, 0x03);   // enable dynamic payload on pipe 0 and 1
+	NRF24::writeRegister(Register::FEATURE, 0x04); // enable dynamic payload
 }
 
 template <typename NRF24>
