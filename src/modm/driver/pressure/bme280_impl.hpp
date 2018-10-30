@@ -27,12 +27,48 @@ modm::Bme280<I2cMaster>::Bme280(Data &data, uint8_t address) :
 {
 }
 
+template < typename I2cMaster >
+modm::ResumableResult<bool>
+modm::Bme280<I2cMaster>::force()
+{
+	uint8_t status = 0x80;
+
+	RF_BEGIN();
+
+	{
+		CtrlMeas_t ctrl_meas = Mode_t(Mode::Forced);
+		ctrl_meas |= Pressure(os_pressure);
+		ctrl_meas |= Temperature(os_temperature);
+
+		buffer[0] = i(Register::CTRL_MEAS);
+		buffer[1] = ctrl_meas.value;
+	}
+	this->transaction.configureWrite(buffer, 2);
+	if (not RF_CALL( this->runTransaction() )) {
+		RF_RETURN(false);
+	}
+
+	buffer[0] = i(Register::STATUS);
+
+	while (status & 0x80)
+	{
+		this->transaction.configureWriteRead(buffer, 1, &status, 1);
+		RF_CALL_BLOCKING( this->runTransaction() );
+	}
+
+	RF_END_RETURN(true);
+}
+
 // ----------------------------------------------------------------------------
 // MARK: - Tasks
 template < typename I2cMaster >
 modm::ResumableResult<bool>
 modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampling temperature, Oversampling humidity)
 {
+	os_temperature = temperature;
+	os_pressure = pressure;
+	os_humidity = humidity;
+
 	RF_BEGIN();
 
 	// Very first verify Chip Id

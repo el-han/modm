@@ -40,27 +40,30 @@ Data::Data() :
 void
 Data::calculateCalibratedTemperature()
 {
-	int32_t adc = (((int32_t(raw[3])) << 16) | (raw[4] << 8) | (raw[5] << 0));
-	adc >>= 4;
+	int32_t var1;
+	int32_t var2;
+	int32_t temperature_min = -4000;
+	int32_t temperature_max = 8500;
 
-	MODM_LOG_DEBUG.printf("adc = 0x%05" PRIx32 "\n", adc);
+	uint32_t adc = (((uint32_t)raw[3]) << 12) | (((uint16_t)raw[4]) << 4) | (((uint32_t)raw[5]) >> 4);
+
+	MODM_LOG_DEBUG.printf("adc = 0x%05" PRIx32 "\r\n", adc);
 
 	int32_t T1 = calibration.T1;
 	int32_t T2 = calibration.T2;
 	int32_t T3 = calibration.T3;
 
-	int32_t var1 = ((((adc >> 3) - (T1 << 1))) * (T2)) >> 11;
+	var1 = (int32_t)((adc / 8) - ((int32_t)calibration.T1 * 2));
+	var1 = (var1 * ((int32_t)calibration.T2)) / 2048;
+	var2 = (int32_t)((adc / 16) - ((int32_t)calibration.T1));
+	var2 = (((var2 * var2) / 4096) * ((int32_t)calibration.T3)) / 16384;
+	t_fine = var1 + var2;
+	calibratedTemperature = (t_fine * 5 + 128) / 256;
 
-
-	int32_t var2 = (  (  ( ((adc >> 4) - (T1)) *
-		                   ((adc >> 4) - (T1))
-		                 ) >> 12
-				 	  ) * (T3)
-                   ) >> 14;
-
-	t_fine = var1 + var2; // global
-
-	calibratedTemperature = (t_fine * 5 + 128) >> 8;
+	if (calibratedTemperature < temperature_min)
+		calibratedTemperature = temperature_min;
+	else if (calibratedTemperature > temperature_max)
+	calibratedTemperature = temperature_max;
 
 	meta |= TEMPERATURE_CALCULATED;
 }
@@ -68,13 +71,19 @@ Data::calculateCalibratedTemperature()
 void
 Data::calculateCalibratedPressure()
 {
+	int64_t var1;
+	int64_t var2;
+	int64_t var3;
+	int64_t var4;
+	uint32_t pressure_min = 3000000;
+	uint32_t pressure_max = 11000000;
+
 	// Before pressure can be calculated, temperature must be.
 	if (not (meta & TEMPERATURE_CALCULATED)) {
 		calculateCalibratedTemperature();
 	}
 
-	int32_t adc = (((int32_t(raw[0])) << 16) | (raw[1] << 8) | (raw[2] << 0));
-	adc >>= 4;
+	uint32_t adc = (((uint32_t)raw[0]) << 12) | (((uint16_t)raw[1]) << 4) | (raw[2] >> 4);
 
 	int64_t P1 = calibration.P1;
 	int64_t P2 = calibration.P2;
@@ -86,24 +95,28 @@ Data::calculateCalibratedPressure()
 	int64_t P8 = calibration.P8;
 	int64_t P9 = calibration.P9;
 
-	int64_t var1 = t_fine - 128'000;
+	var1 = ((int64_t)t_fine) - 128000;
+	var2 = var1 * var1 * (int64_t)calibration.P6;
+	var2 = var2 + ((var1 * (int64_t)calibration.P5) * 131072);
+	var2 = var2 + (((int64_t)calibration.P4) * 34359738368);
+	var1 = ((var1 * var1 * (int64_t)calibration.P3) / 256) + ((var1 * ((int64_t)calibration.P2) * 4096));
+	var3 = ((int64_t)1) * 140737488355328;
+	var1 = (var3 + var1) * ((int64_t)calibration.P1) / 8589934592;
+
+	int64_t var1 = t_fine - 128000;
 	int64_t var2 = var1 * var1 * P6;
 	var2 = var2 + ((var1 * P5) << 17);
 	var2 = var2 + (P4 << 35);
 	var1 = ((var1 * var1 * P3) >> 8) + ((var1 * P2) << 12);
 	var1 = ((((int64_t(1)) << 47) + var1)) * (P1) >> 33;
 
-	if (var1 == 0) {
-    	return;  // avoid exception caused by division by zero
-  	}
-  	int64_t p = 1048576 - adc;
-  	p = (((p << 31) - var2) * 3125) / var1;
-  	var1 = ((P9) * (p >> 13) * (p >> 13)) >> 25;
-  	var2 = (P8 * p) >> 19;
-
-	p = ((p + var1 + var2) >> 8) + (P7 << 4);
-
-	calibratedPressure = ((float)p/256)*1000;
+		if (calibratedPressure < pressure_min)
+			calibratedPressure = pressure_min;
+		else if (calibratedPressure > pressure_max)
+			calibratedPressure = pressure_max;
+	} else {
+		calibratedPressure = pressure_min;
+	}
 
 	meta |= PRESSURE_CALCULATED;
 }
@@ -111,12 +124,19 @@ Data::calculateCalibratedPressure()
 void
 Data::calculateCalibratedHumidity()
 {
+	int32_t var1;
+	int32_t var2;
+	int32_t var3;
+	int32_t var4;
+	int32_t var5;
+	uint32_t humidity_max = 102400;
+
 	// Before humidity can be calculated, temperature must be.
 	if (not (meta & TEMPERATURE_CALCULATED)) {
 		calculateCalibratedTemperature();
 	}
 
-	int32_t adc = ((raw[6] << 8) | (raw[7] << 0));
+	uint32_t adc = (((uint16_t)raw[6]) << 8) | (raw[7] << 0);
 
 	int32_t H1 = calibration.H1;
 	int32_t H2 = calibration.H2;
@@ -125,16 +145,32 @@ Data::calculateCalibratedHumidity()
 	int32_t H5 = calibration.H5;
 	int32_t H6 = calibration.H6;
 
-  	int32_t v = (t_fine - int32_t(76'800));
+	var1 = t_fine - ((int32_t)76800);
+	var2 = (int32_t)(adc * 16384);
+	var3 = (int32_t)(((int32_t)calibration.H4) * 1048576);
+	var4 = ((int32_t)calibration.H5) * var1;
+	var5 = (((var2 - var3) - var4) + (int32_t)16384) / 32768;
+	var2 = (var1 * ((int32_t)calibration.H6)) / 1024;
+	var3 = (var1 * ((int32_t)calibration.H3)) / 2048;
+	var4 = ((var2 * (var3 + (int32_t)32768)) / 1024) + (int32_t)2097152;
+	var2 = ((var4 * ((int32_t)calibration.H2)) + 8192) / 16384;
+	var3 = var5 * var2;
+	var4 = ((var3 / 32768) * (var3 / 32768)) / 128;
+	var5 = var3 - ((var4 * ((int32_t)calibration.H1)) / 16);
+	var5 = (var5 < 0 ? 0 : var5);
+	var5 = (var5 > 419430400 ? 419430400 : var5);
+	calibratedHumidity = (uint32_t)(var5 / 4096);
 
-    v = (((((adc << 14) - (H4 << 20) - (H5 * v)) + (int32_t(16'384))) >> 15) *
-		  (((((((v * H6) >> 10) * (((v * (H3)) >> 11) + (int32_t(32'768)))) >> 10) +
-		  	(int32_t(2'097'152))) * H2 + 8'192) >> 14));
+  	int32_t v = (t_fine - int32_t(76800));
+
+	v = (((((adc << 14) - (H4 << 20) - (H5 * v)) + (int32_t(16384))) >> 15) *
+		  (((((((v * H6) >> 10) * (((v * (H3)) >> 11) + (int32_t(32768)))) >> 10) +
+		  	(int32_t(2097152))) * H2 + 8192) >> 14));
 
 	v = (v - (((((v >> 15) * (v >> 15)) >> 7) * H1) >> 4));
 
 	v = (v < 0) ? 0 : v;
-	v = (v > 419'430'400) ? 419'430'400 : v;
+	v = (v > 419430400) ? 419430400 : v;
 
 	calibratedHumidity = (v >> 12);
 	meta |= HUMIDITY_CALCULATED;

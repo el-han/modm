@@ -192,8 +192,8 @@ protected:
 
 private:
 	int32_t calibratedTemperature; // in 0.01 degree Celsius
-	int32_t calibratedPressure;    // in Pa
-	int32_t calibratedHumidity;    // in ???
+	uint32_t calibratedPressure;    // in Pa
+	uint32_t calibratedHumidity;    // in ???
 
 	// calculated in calculateCalibratedTemperature, needed for calculateCalibratedPressure and calculateCalibratedHumidity
 	int32_t t_fine;
