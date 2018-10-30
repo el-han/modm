@@ -26,8 +26,8 @@ constexpr uint8_t  device  = 0xC4;
 constexpr uint8_t  channel = 96;
 
 
-typedef D8 Ce;
-typedef D10 Csn;
+typedef D7 Ce;
+typedef D8 Csn;
 typedef D3 InterruptPin;
 
 typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
