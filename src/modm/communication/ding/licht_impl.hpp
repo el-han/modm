@@ -119,10 +119,8 @@ void ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::receive()
 {
 	LichtMessage message = Ding<NRF24>::receive();
 
-	if (message.destination == ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::device_id && message.type == ding::MessageType::Rgbw)
+	if (message.destination == ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::device_id && message.type == ding::MessageType::Rgbw && message.payload_bytes == 4)
 		received_color.push(message.getLichtData());
-	else
-		setRaw(255,0,0,0);
 }
 
 template <typename NRF24, typename RED, typename GREEN, typename BLUE, typename WHITE>
