@@ -25,12 +25,6 @@ constexpr uint16_t network = 0xA1A2;
 constexpr uint8_t  device  = 0xA3;
 constexpr uint8_t  channel = 96;
 
-constexpr ding::LichtData off   = ding::LichtData(0, 0, 0, 0);
-constexpr ding::LichtData night = ding::LichtData(255, 100, 0, 0);
-constexpr ding::LichtData day   = ding::LichtData(0, 0, 0, 255);
-
-ding::LichtData message = off;
-
 typedef D8 Ce;
 typedef D10 Csn;
 typedef D2 InterruptPin;
@@ -43,6 +37,9 @@ typedef ding::Ding<Radio> Switch;
 volatile bool button = false;
 volatile bool sleep = true;
 
+uint16_t lost_downtime = 0;
+volatile uint8_t lost_count = 0;
+
 uint16_t downtime = 0;
 
 void
@@ -53,23 +50,24 @@ handleInterrupt()
 	if (status & (uint8_t)Radio::Status::MAX_RT) {
 		Radio::flushTxFifo();
 		Radio::clearInterrupt(Radio::InterruptFlag::MAX_RT);
+		downtime = 0;
+		lost_count++;
+
+		// Timeout
+		if (lost_count > 200) {
+			lost_count = 0;
+		}
 	}
 
 	if (status & (uint8_t)Radio::Status::TX_DS) {
-		// Radio::flushTxFifo();
+		Radio::flushTxFifo();
 		Radio::clearInterrupt(Radio::InterruptFlag::TX_DS);
-
-		if (message == off)
-			message = night;
-		else if (message == night)
-			message = day;
-		else
-			message = off;
-
+		downtime = 0;
+		lost_count = 0;
 	}
 
 	if (status & (uint8_t)Radio::Status::RX_DR) {
-		// Radio::flushRxFifo();
+		Radio::flushRxFifo();
 		Radio::clearInterrupt(Radio::InterruptFlag::RX_DR);
 	}
 }
@@ -165,16 +163,17 @@ main()
 		}
 
 		if (button) {
-			if (downtime > 90)
-				Switch::send(ding::LichtMessage(0x00, 0x02, night));
-			else if (downtime > 30)
-				Switch::send(ding::LichtMessage(0x00, 0x02, off));
-			else
-				Switch::send(ding::LichtMessage(0x00, 0x02, day));
 			button = false;
+			lost_downtime = downtime;
+			Switch::send(ding::Message(0x00, device, downtime));
 		}
 
 		if (!button && sleep) {
+
+			if (lost_count != 0) {
+				Switch::send(ding::Message(0x00, device, lost_downtime));
+			}
+
 			downtime = 0;
 			modm::delayMilliseconds(100);
 			sleepMode();
