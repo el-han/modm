@@ -103,12 +103,14 @@ Data::calculateCalibratedPressure()
 	var3 = ((int64_t)1) * 140737488355328;
 	var1 = (var3 + var1) * ((int64_t)calibration.P1) / 8589934592;
 
-	int64_t var1 = t_fine - 128000;
-	int64_t var2 = var1 * var1 * P6;
-	var2 = var2 + ((var1 * P5) << 17);
-	var2 = var2 + (P4 << 35);
-	var1 = ((var1 * var1 * P3) >> 8) + ((var1 * P2) << 12);
-	var1 = ((((int64_t(1)) << 47) + var1)) * (P1) >> 33;
+	/* To avoid divide by zero exception */
+	if (var1 != 0) {
+		var4 = 1048576 - adc;
+		var4 = (((var4 * 2147483648) - var2) * 3125) / var1;
+		var1 = (((int64_t)calibration.P9) * (var4 / 8192) * (var4 / 8192)) / 33554432;
+		var2 = (((int64_t)calibration.P8) * var4) / 524288;
+		var4 = ((var4 + var1 + var2) / 256) + (((int64_t)calibration.P7) * 16);
+		calibratedPressure = (uint32_t)(((var4 / 2) * 100) / 128);
 
 		if (calibratedPressure < pressure_min)
 			calibratedPressure = pressure_min;
@@ -161,19 +163,8 @@ Data::calculateCalibratedHumidity()
 	var5 = (var5 > 419430400 ? 419430400 : var5);
 	calibratedHumidity = (uint32_t)(var5 / 4096);
 
-  	int32_t v = (t_fine - int32_t(76800));
-
-	v = (((((adc << 14) - (H4 << 20) - (H5 * v)) + (int32_t(16384))) >> 15) *
-		  (((((((v * H6) >> 10) * (((v * (H3)) >> 11) + (int32_t(32768)))) >> 10) +
-		  	(int32_t(2097152))) * H2 + 8192) >> 14));
-
-	v = (v - (((((v >> 15) * (v >> 15)) >> 7) * H1) >> 4));
-
-	v = (v < 0) ? 0 : v;
-	v = (v > 419430400) ? 419430400 : v;
-
-	calibratedHumidity = (v >> 12);
-	meta |= HUMIDITY_CALCULATED;
+	if (calibratedHumidity > humidity_max)
+		calibratedHumidity = humidity_max;
 }
 
 int32_t

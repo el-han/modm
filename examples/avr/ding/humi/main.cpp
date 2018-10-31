@@ -15,7 +15,6 @@
 #include <modm/board.hpp>
 #include <modm/architecture/interface/interrupt.hpp>
 
-
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 
@@ -32,11 +31,9 @@ typedef D3 InterruptPin;
 
 typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
 
-modm::bme280::Data bmeData;
-modm::Bme280<I2cMaster> bme(bmeData, 0x76);
-
 typedef ding::Humi<Radio, I2cMaster> humi;
 
+volatile bool sent, lost = false;
 
 void
 handleInterrupt()
@@ -46,11 +43,13 @@ handleInterrupt()
 	if (status & (uint8_t)Radio::Status::MAX_RT) {
 		Radio::flushTxFifo();
 		Radio::clearInterrupt(Radio::InterruptFlag::MAX_RT);
+		lost = true;
 	}
 
 	if (status & (uint8_t)Radio::Status::TX_DS) {
 		// Radio::flushTxFifo();
 		Radio::clearInterrupt(Radio::InterruptFlag::TX_DS);
+		sent = true;
 	}
 
 	if (status & (uint8_t)Radio::Status::RX_DR) {
@@ -106,7 +105,12 @@ void wdtSleep() {
 int
 main()
 {
+	// Uart0::connect<D1::Txd, D0::Rxd>();
+	// Uart0::initialize<modm::platform::SystemClock, 9600>();
 	enableInterrupts();
+
+	modm::bme280::Data bmeData;
+	modm::Bme280<I2cMaster> bme(bmeData, 0x76);
 
 	InterruptPin::enableExternalInterrupt();
 	InterruptPin::setInputTrigger(InterruptPin::InputTrigger::LowLevel);
@@ -130,7 +134,21 @@ main()
 	{
 		humi::measure(bme);
 
-		humi::send();
+		bool success = true; // only one transmission
+
+		do {
+
+			humi::send();
+
+			while (!sent && !lost)
+				;
+
+			if (sent)
+				success = true;
+
+			sent = false;
+			lost = false;
+		} while (!success);
 
 		modm::delayMilliseconds(100);
 		wdtSleep();

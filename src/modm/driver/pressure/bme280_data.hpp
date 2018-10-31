@@ -14,13 +14,8 @@
 #include <stdio.h>
 #include <cmath>
 
-#include <modm/debug/logger/logger.hpp>
-
 #ifndef MODM_BME280_DATA_HPP
 #define MODM_BME280_DATA_HPP
-
-#undef  MODM_LOG_LEVEL
-#define MODM_LOG_LEVEL modm::log::DISABLED
 
 // Forward declaration the test class
 class Bme280Test;
