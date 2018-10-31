@@ -31,7 +31,7 @@ template < typename I2cMaster >
 modm::ResumableResult<bool>
 modm::Bme280<I2cMaster>::force()
 {
-	uint8_t status = 0x80;
+	uint8_t status = 0x08;
 
 	RF_BEGIN();
 
@@ -50,7 +50,7 @@ modm::Bme280<I2cMaster>::force()
 
 	buffer[0] = i(Register::STATUS);
 
-	while (status & 0x80)
+	while ((status & 0x08) != 0)
 	{
 		this->transaction.configureWriteRead(buffer, 1, &status, 1);
 		RF_CALL_BLOCKING( this->runTransaction() );
@@ -65,6 +65,7 @@ template < typename I2cMaster >
 modm::ResumableResult<bool>
 modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampling temperature, Oversampling humidity)
 {
+	uint8_t status = 0x01;
 	os_temperature = temperature;
 	os_pressure = pressure;
 	os_humidity = humidity;
@@ -92,6 +93,36 @@ modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampli
 
 	// First configure humidity sampling because
 	// Changes to this register only become effective after a write operation to “ctrl_meas”.
+
+
+
+	// reset the device using soft-reset
+	// this makes sure the IIR is off, etc.
+	{
+		buffer[0] = i(Register::RESET);
+		buffer[1] = ResetValue;
+	}
+	this->transaction.configureWrite(buffer, 2);
+	if (not RF_CALL( this->runTransaction() )) {
+		RF_RETURN(false);
+	}
+
+	// wait for chip to wake up.
+	modm::delayMilliseconds(300);
+
+	buffer[0] = i(Register::STATUS);
+
+	// if chip is still reading calibration, delay
+	while ((status & 0x01) != 0)
+	{
+		this->transaction.configureWriteRead(buffer, 1, &status, 1);
+		RF_CALL_BLOCKING( this->runTransaction() );
+
+		if ((status & 0x01) != 0)
+			modm::delayMilliseconds(100);
+	}
+
+
 	{
 		CtrlHum_t ctrl_hum = Humidity(humidity);
 

@@ -18,16 +18,24 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 
+#undef  MODM_LOG_LEVEL
+#define MODM_LOG_LEVEL modm::log::DEBUG
+
 using namespace modm::platform;
 
 constexpr uint16_t network = 0xA1A2;
-constexpr uint8_t  device  = 0xC4;
+constexpr uint8_t  device  = 0xC2;
 constexpr uint8_t  channel = 96;
 
-
+// Raduino
 typedef D7 Ce;
 typedef D8 Csn;
 typedef D3 InterruptPin;
+
+// Schlafzimmer
+// typedef D8 Ce;
+// typedef D10 Csn;
+// typedef D3 InterruptPin;
 
 typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
 
@@ -39,6 +47,7 @@ void
 handleInterrupt()
 {
 	uint8_t status = Radio::readStatus();
+	MODM_LOG_DEBUG << "Interrutp!\r\n";
 
 	if (status & (uint8_t)Radio::Status::MAX_RT) {
 		Radio::flushTxFifo();
@@ -105,9 +114,11 @@ void wdtSleep() {
 int
 main()
 {
-	// Uart0::connect<D1::Txd, D0::Rxd>();
-	// Uart0::initialize<modm::platform::SystemClock, 9600>();
+	Uart0::connect<D1::Txd, D0::Rxd>();
+	Uart0::initialize<modm::platform::SystemClock, 9600>();
 	enableInterrupts();
+
+	MODM_LOG_DEBUG << "Humi test\r\n";
 
 	modm::bme280::Data bmeData;
 	modm::Bme280<I2cMaster> bme(bmeData, 0x76);
@@ -124,6 +135,7 @@ main()
 
 	humi::initializeRadio(channel);
 
+	MODM_LOG_DEBUG << "go\r\n";
 	humi::setAddress(network, device);
 
 	humi::startTX();
@@ -137,6 +149,7 @@ main()
 		bool success = true; // only one transmission
 
 		do {
+			MODM_LOG_DEBUG << "send... ";
 
 			humi::send();
 
@@ -149,6 +162,7 @@ main()
 			sent = false;
 			lost = false;
 		} while (!success);
+		MODM_LOG_DEBUG << "sent\r\n";
 
 		modm::delayMilliseconds(100);
 		wdtSleep();
