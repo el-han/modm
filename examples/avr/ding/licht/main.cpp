@@ -19,13 +19,18 @@
 using namespace modm::platform;
 
 constexpr uint16_t network = 0xA1A2;
-constexpr uint8_t  device  = 0xb0;
+constexpr uint8_t  device  = 0xb2;
 constexpr uint8_t  channel = 96;
 
-typedef GpioPwmD6 Red;
-typedef GpioPwmD5 Green;
-typedef GpioPwmB1 Blue;
-typedef GpioPwmB2 White;
+// typedef GpioPwmD6 Red;
+// typedef GpioPwmD5 Green;
+// typedef GpioPwmB1 Blue;
+// typedef GpioPwmB2 White;
+
+typedef GpioPwmD5 Red;
+typedef GpioPwmB1 Green;
+typedef GpioPwmD6 Blue;
+typedef GpioPwmD3 White;
 
 typedef D8 Ce;
 typedef D7 Csn;
