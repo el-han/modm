@@ -120,6 +120,9 @@ main()
 
 	MODM_LOG_DEBUG << "Humi test\r\n";
 
+	I2cMaster::connect<A4::Sda, A5::Scl>();
+	I2cMaster::initialize<systemClock, 100000>();
+
 	modm::bme280::Data bmeData;
 	modm::Bme280<I2cMaster> bme(bmeData, 0x76);
 
