@@ -27,14 +27,18 @@ constexpr uint8_t  channel = 96;
 // typedef GpioPwmB1 Blue;
 // typedef GpioPwmB2 White;
 
+// typedef D8 Ce;
+// typedef D7 Csn;
+// typedef D3 InterruptPin;
+
 typedef GpioPwmD5 Red;
 typedef GpioPwmB1 Green;
 typedef GpioPwmD6 Blue;
 typedef GpioPwmD3 White;
 
 typedef D8 Ce;
-typedef D7 Csn;
-typedef D3 InterruptPin;
+typedef D10 Csn;
+typedef D2 InterruptPin;
 
 typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
 
@@ -68,10 +72,6 @@ main()
 {
 	RGBWLicht::begin();
 
-	InterruptPin::setInput(Gpio::InputType::PullUp);
-	InterruptPin::enableExternalInterrupt();
-	InterruptPin::setInputTrigger(InterruptPin::InputTrigger::LowLevel);
-
 	enableInterrupts();
 
 	Csn::setOutput(modm::Gpio::High);
@@ -79,15 +79,19 @@ main()
 
 	// Enable SPI
 	SpiMaster::connect<D13::Sck, D11::Mosi, D12::Miso>();
-	SpiMaster::initialize<modm::platform::SystemClock, 625000, modm::Tolerance::Exact>();
+	SpiMaster::initialize<modm::platform::SystemClock, 500000, modm::Tolerance::Exact>();
 
 	RGBWLicht::initializeRadio(channel);
+
+	InterruptPin::setInput(Gpio::InputType::PullUp);
+	InterruptPin::enableExternalInterrupt();
+	InterruptPin::setInputTrigger(InterruptPin::InputTrigger::LowLevel);
 
 	RGBWLicht::setAddress(network, device);
 
 	RGBWLicht::startRX();
 
-	while (1)
+	while (true)
 	{
 		if (received) {
 			received = false;
@@ -96,7 +100,7 @@ main()
 	}
 }
 
-MODM_ISR(INT1)
+MODM_ISR(INT0)
 {
 	handleInterrupt();
 }
