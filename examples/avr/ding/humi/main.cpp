@@ -19,17 +19,17 @@
 #include <avr/wdt.h>
 
 #undef  MODM_LOG_LEVEL
-#define MODM_LOG_LEVEL modm::log::DEBUG
+#define MODM_LOG_LEVEL modm::log::DISABLED
 
 using namespace modm::platform;
 
 constexpr uint16_t network = 0xA1A2;
-constexpr uint8_t  device  = 0xC2;
+constexpr uint8_t  device  = 0xC1;
 constexpr uint8_t  channel = 96;
 
 // Raduino
 typedef D7 Ce;
-typedef D8 Csn;
+typedef D8 Csn; // Actually D8, but AVR uses D10 as hardware SPI
 typedef D3 InterruptPin;
 
 // Schlafzimmer
@@ -37,7 +37,12 @@ typedef D3 InterruptPin;
 // typedef D10 Csn;
 // typedef D3 InterruptPin;
 
-typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
+typedef D13 Sck;
+typedef D11 Mosi;
+typedef D12 Miso;
+
+typedef BitBangSpiMaster<Sck, Mosi, Miso> SpiRadio;
+typedef modm::Nrf24Phy<SpiRadio, Csn, Ce> Radio;
 
 typedef ding::Humi<Radio, I2cMaster> humi;
 
@@ -46,8 +51,8 @@ volatile bool sent, lost = false;
 void
 handleInterrupt()
 {
+	MODM_LOG_DEBUG << "Interrupt!\r\n";
 	uint8_t status = Radio::readStatus();
-	MODM_LOG_DEBUG << "Interrutp!\r\n";
 
 	if (status & (uint8_t)Radio::Status::MAX_RT) {
 		Radio::flushTxFifo();
@@ -115,31 +120,35 @@ int
 main()
 {
 	Uart0::connect<D1::Txd, D0::Rxd>();
-	Uart0::initialize<modm::platform::SystemClock, 9600>();
+	Uart0::initialize<Board::SystemClock, 9600>();
 	enableInterrupts();
+
+	Adc::initialize<SystemClock, 115_kHz>();
+	Adc::setReference(Adc::Reference::InternalVcc);
 
 	MODM_LOG_DEBUG << "Humi test\r\n";
 
 	I2cMaster::connect<A4::Sda, A5::Scl>();
-	I2cMaster::initialize<systemClock, 100000>();
+	I2cMaster::initialize<Board::SystemClock, 100000>();
 
 	modm::bme280::Data bmeData;
 	modm::Bme280<I2cMaster> bme(bmeData, 0x76);
-
-	InterruptPin::enableExternalInterrupt();
-	InterruptPin::setInputTrigger(InterruptPin::InputTrigger::LowLevel);
 
 	Csn::setOutput(modm::Gpio::High);
 	Ce::setOutput(modm::Gpio::Low);
 
 	// Enable SPI
-	SpiMaster::connect<D13::Sck, D11::Mosi, D12::Miso>();
-	SpiMaster::initialize<modm::platform::SystemClock, 500000, modm::Tolerance::TenPercent>();
+	SpiRadio::connect<D13::BitBang, D11::BitBang, D12::BitBang>();
+	SpiRadio::initialize<Board::SystemClock, 500000, 10_pct>();
 
+	MODM_LOG_DEBUG << "Jo\r\n";
 	humi::initializeRadio(channel);
 
 	MODM_LOG_DEBUG << "go\r\n";
 	humi::setAddress(network, device);
+
+	InterruptPin::enableExternalInterrupt();
+	InterruptPin::setInputTrigger(InterruptPin::InputTrigger::LowLevel);
 
 	humi::startTX();
 
@@ -155,6 +164,27 @@ main()
 			MODM_LOG_DEBUG << "send... ";
 
 			humi::send();
+
+			while (!sent && !lost)
+				;
+
+			if (sent)
+				success = true;
+
+			sent = false;
+			lost = false;
+		} while (!success);
+
+
+		uint16_t adcvalue = Adc::readChannel(14);
+		uint16_t voltage = adcvalue != 0 ? (1100L * 1023) / adcvalue : 0;
+
+		success = true; // only one transmission
+
+		do {
+			MODM_LOG_DEBUG << "send... ";
+
+			ding::Ding<Radio>::send(ding::Message(0x00, device, voltage));
 
 			while (!sent && !lost)
 				;

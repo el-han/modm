@@ -14,8 +14,13 @@
 #include <stdio.h>
 #include <cmath>
 
+#include <modm/debug/logger/logger.hpp>
+
 #ifndef MODM_BME280_DATA_HPP
 #define MODM_BME280_DATA_HPP
+
+#undef  MODM_LOG_LEVEL
+#define MODM_LOG_LEVEL modm::log::DISABLED
 
 // Forward declaration the test class
 class Bme280Test;
@@ -187,8 +192,8 @@ protected:
 
 private:
 	int32_t calibratedTemperature; // in 0.01 degree Celsius
-	uint32_t calibratedPressure;    // in Pa
-	uint32_t calibratedHumidity;    // in ???
+	int32_t calibratedPressure;    // in Pa
+	int32_t calibratedHumidity;    // in ???
 
 	// calculated in calculateCalibratedTemperature, needed for calculateCalibratedPressure and calculateCalibratedHumidity
 	int32_t t_fine;

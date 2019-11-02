@@ -65,7 +65,7 @@ ding::Humi<NRF24, I2cMaster>::begin(modm::Bme280<I2cMaster>& bme)
 template <typename NRF24, typename I2cMaster>
 void ding::Humi<NRF24, I2cMaster>::measure(modm::Bme280<I2cMaster>& bme)
 {
-		RF_CALL_BLOCKING(bme.force());
+		RF_CALL_BLOCKING(bme.startMeasurement(modm::Bme280<I2cMaster>::Oversampling::Sexdecuple, modm::Bme280<I2cMaster>::Oversampling::Sexdecuple));
 		RF_CALL_BLOCKING(bme.readout());
 
 		current_data.temperature = bme.getData().getTemperature();

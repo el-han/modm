@@ -27,38 +27,6 @@ modm::Bme280<I2cMaster>::Bme280(Data &data, uint8_t address) :
 {
 }
 
-template < typename I2cMaster >
-modm::ResumableResult<bool>
-modm::Bme280<I2cMaster>::force()
-{
-	uint8_t status = 0x08;
-
-	RF_BEGIN();
-
-	{
-		CtrlMeas_t ctrl_meas = Mode_t(Mode::Forced);
-		ctrl_meas |= Pressure(os_pressure);
-		ctrl_meas |= Temperature(os_temperature);
-
-		buffer[0] = i(Register::CTRL_MEAS);
-		buffer[1] = ctrl_meas.value;
-	}
-	this->transaction.configureWrite(buffer, 2);
-	if (not RF_CALL( this->runTransaction() )) {
-		RF_RETURN(false);
-	}
-
-	buffer[0] = i(Register::STATUS);
-
-	while ((status & 0x08) != 0)
-	{
-		this->transaction.configureWriteRead(buffer, 1, &status, 1);
-		RF_CALL_BLOCKING( this->runTransaction() );
-	}
-
-	RF_END_RETURN(true);
-}
-
 // ----------------------------------------------------------------------------
 // MARK: - Tasks
 template < typename I2cMaster >
@@ -66,9 +34,6 @@ modm::ResumableResult<bool>
 modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampling temperature, Oversampling humidity)
 {
 	uint8_t status = 0x01;
-	os_temperature = temperature;
-	os_pressure = pressure;
-	os_humidity = humidity;
 
 	RF_BEGIN();
 
@@ -84,17 +49,12 @@ modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampli
 			MODM_LOG_DEBUG.printf("BME280 Chip Id check. Read %02x, expected %02x\n", chid, ChipId);
 			if (chid != ChipId) {
 				MODM_LOG_ERROR.printf("BME280 Chip Id mismatch. Read %02x, expected %02x\n", chid, ChipId);
-				RF_RETURN(false);
+				// RF_RETURN(false);
 			}
 		} else {
 			RF_RETURN(false);
 		}
 	}
-
-	// First configure humidity sampling because
-	// Changes to this register only become effective after a write operation to “ctrl_meas”.
-
-
 
 	// reset the device using soft-reset
 	// this makes sure the IIR is off, etc.
@@ -123,6 +83,8 @@ modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampli
 	}
 
 
+	// First configure humidity sampling because
+	// Changes to this register only become effective after a write operation to “ctrl_meas”.
 	{
 		CtrlHum_t ctrl_hum = Humidity(humidity);
 
@@ -256,6 +218,8 @@ template < typename I2cMaster >
 modm::ResumableResult<bool>
 modm::Bme280<I2cMaster>::startMeasurement(Oversampling pressure, Oversampling temperature)
 {
+	uint8_t status = 0x08;
+
 	RF_BEGIN();
 
 	{
@@ -270,5 +234,17 @@ modm::Bme280<I2cMaster>::startMeasurement(Oversampling pressure, Oversampling te
 	}
 
 	this->transaction.configureWrite(buffer, 2);
-	RF_END_RETURN_CALL( this->runTransaction() );
+	if (not RF_CALL( this->runTransaction() )) {
+		RF_RETURN(false);
+	}
+
+	buffer[0] = i(Register::STATUS);
+
+	while ((status & 0x08) != 0)
+	{
+		this->transaction.configureWriteRead(buffer, 1, &status, 1);
+		RF_CALL_BLOCKING( this->runTransaction() );
+	}
+
+	RF_END_RETURN(true);
 }

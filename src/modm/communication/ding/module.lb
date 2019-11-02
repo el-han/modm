@@ -12,12 +12,12 @@
 
 
 def init(module):
-    module.parent = "communication"
-    module.name = "ding"
+    module.name = ":communication:ding"
 
 
 def prepare(module, options):
     module.depends(
+        ":debug",
         ":driver:nrf24",
         ":driver:bme280",
         ":math:geometry")
@@ -26,4 +26,4 @@ def prepare(module, options):
 
 def build(env):
     env.outbasepath = "modm/src/modm/communication/ding"
-    env.copy(".", ignore=env.ignore_patterns("*.lb"))
+    env.copy(".")

@@ -13,9 +13,14 @@
 #include <stdio.h>
 #include <cmath>
 
+#include <modm/debug/logger/logger.hpp>
+
 #ifndef MODM_BME280_DATA_HPP
 #	error  "Don't include this file directly, use 'bme280_data.hpp' instead!"
 #endif
+
+#undef  MODM_LOG_LEVEL
+#define MODM_LOG_LEVEL modm::log::DISABLED
 
 namespace modm
 {
@@ -51,6 +56,8 @@ DataDouble::calculateCalibratedTemperature()
 	t_fine = var1 + var2;
 
 	calibratedTemperatureDouble = (var1 + var2) / double(5120.0);
+
+	MODM_LOG_DEBUG.printf("T dp = %4.2f\n", calibratedTemperatureDouble);
 
 	meta |= TEMPERATURE_CALCULATED;
 }
