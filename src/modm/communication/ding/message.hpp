@@ -20,6 +20,7 @@ enum class MessageType : uint8_t {
 	Rgbw           = 3,
 	HumiDisplay    = 4,
 	RgbwController = 5,
+	Battery        = 6,
 	Error          = 0xff
 };
 
@@ -37,6 +38,7 @@ public:
 	Message(uint8_t size, modm::Vector<uint8_t, 32> packet);
 	Message(modm::Vector<uint8_t, 32> packet);
 	Message(uint8_t destination_id, uint8_t source_id, uint16_t value);
+	Message(uint8_t source_id, uint16_t voltage);
 
 	uint16_t getInteger();
 };

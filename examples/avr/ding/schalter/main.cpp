@@ -19,7 +19,7 @@
 #include <avr/wdt.h>
 
 #undef  MODM_LOG_LEVEL
-#define MODM_LOG_LEVEL modm::log::DEBUG
+#define MODM_LOG_LEVEL modm::log::DISABLED
 
 using namespace modm::platform;
 
@@ -33,18 +33,24 @@ typedef D7 Ce;
 typedef D8 Csn;
 typedef D3 InterruptPin;
 
+typedef D13 Sck;
+typedef D11 Mosi;
+typedef D12 Miso;
+
 typedef D2 ButtonInterruptPin;
 
-typedef A0 S1
-typedef A1 S2
-typedef D9 S3
-typedef D6 S4
-typedef D5 S5
-typedef D4 S6
+typedef A2 S1;
+typedef A1 S2;
+typedef D9 S3;
+typedef D6 S4;
+typedef D5 S5;
+typedef D4 S6;
 
-typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
+typedef BitBangSpiMaster<Sck, Mosi, Miso> SpiRadio;
+typedef modm::Nrf24Phy<SpiRadio, Csn, Ce> Radio;
 
-typedef ding::Humi<Radio, I2cMaster> humi;
+typedef ding::Humi<Radio, I2cMaster> Humi;
+typedef ding::Ding<Radio> Schalter;
 
 volatile bool sent, lost = false;
 volatile bool wdt = true;
@@ -79,17 +85,17 @@ void handleButton()
 	disableInterrupts();
 
 	if (!S1::read())
-		humi.send(ding::Message(0x00, device, 1));
+		Schalter::send(ding::Message(0x00, device, 1));
 	if (!S2::read())
-		humi.send(ding::Message(0x00, device, 2));
+		Schalter::send(ding::Message(0x00, device, 2));
 	if (!S3::read())
-		humi.send(ding::Message(0x00, device, 3));
+		Schalter::send(ding::Message(0x00, device, 3));
 	if (!S4::read())
-		humi.send(ding::Message(0x00, device, 4));
+		Schalter::send(ding::Message(0x00, device, 4));
 	if (!S5::read())
-		humi.send(ding::Message(0x00, device, 5));
+		Schalter::send(ding::Message(0x00, device, 5));
 	if (!S6::read())
-		humi.send(ding::Message(0x00, device, 6));
+		Schalter::send(ding::Message(0x00, device, 6));
 
 	modm::delayMilliseconds(100);
 	enableInterrupts();
@@ -145,32 +151,28 @@ main()
 	systemClock::enable();
 
 	Uart0::connect<D1::Txd, D0::Rxd>();
-	Uart0::initialize<modm::platform::SystemClock, 9600>();
+	Uart0::initialize<Board::SystemClock, 9600>();
+	enableInterrupts();
+
+	MODM_LOG_DEBUG << "Humi Test\r\n";
+
+	Adc::initialize<SystemClock, 115_kHz>();
+	Adc::setReference(Adc::Reference::InternalVcc);
 
 	I2cMaster::connect<A4::Sda, A5::Scl>();
-	I2cMaster::initialize<modm::platform::SystemClock, 100000>();
+	I2cMaster::initialize<Board::SystemClock, 100000>();
+
+	modm::bme280::Data bmeData;
+	modm::Bme280<I2cMaster> bme(bmeData, 0x76);
 
 	Csn::setOutput(modm::Gpio::High);
 	Ce::setOutput(modm::Gpio::Low);
 
 	// Enable SPI
-	SpiMaster::connect<D13::Sck, D11::Mosi, D12::Miso>();
-	SpiMaster::initialize<modm::platform::SystemClock, 500000, modm::Tolerance::TenPercent>();
+	SpiRadio::connect<D13::BitBang, D11::BitBang, D12::BitBang>();
+	SpiRadio::initialize<Board::SystemClock, 500000, 10_pct>();
 
-	enableInterrupts();
-
-	modm::bme280::Data bmeData;
-	modm::Bme280<I2cMaster> bme(bmeData, 0x76);
-
-	MODM_LOG_DEBUG << "Humi Test\r\n";
-
-	Radio::resetCe();
-	Radio::initialize(0);
-
-	Radio::clearInterrupt(Radio::InterruptFlag::ALL);
-	MODM_LOG_DEBUG << "Init\r\n";
-
-	humi::initializeRadio(channel);
+	Humi::initializeRadio(channel);
 
 	MODM_LOG_DEBUG << "go\r\n";
 
@@ -189,26 +191,46 @@ main()
 	ButtonInterruptPin::enableExternalInterrupt();
 	ButtonInterruptPin::setInputTrigger(Gpio::InputTrigger::LowLevel);
 
-	humi::setAddress(network, device);
+	Humi::setAddress(network, device);
 
-	humi::startTX();
+	Humi::startTX();
 
-	humi::begin(bme);
+	Humi::begin(bme);
 
 	while (true)
 	{
-		if (wdt = true) {
+		if (wdt == true) {
 
 			wdt = false;
 
-			humi::measure(bme);
+			Humi::measure(bme);
 
 			bool success = true; // only one transmission
 
 			do {
 				MODM_LOG_DEBUG << "send... ";
 
-				humi::send();
+				Humi::send();
+
+				while (!sent && !lost)
+					;
+
+				if (sent)
+					success = true;
+
+				sent = false;
+				lost = false;
+			} while (!success);
+
+			uint16_t adcvalue = Adc::readChannel(14);
+			uint16_t voltage = adcvalue != 0 ? (1100L * 1023) / adcvalue : 0;
+
+			success = true; // only one transmission
+
+			do {
+				MODM_LOG_DEBUG << "send... ";
+
+				Schalter::send(ding::Message(device, voltage));
 
 				while (!sent && !lost)
 					;
@@ -241,5 +263,5 @@ MODM_ISR(INT0)
 
 MODM_ISR(WDT)
 {
-
+	wdt = true;
 }

@@ -141,7 +141,6 @@ main()
 	SpiRadio::connect<D13::BitBang, D11::BitBang, D12::BitBang>();
 	SpiRadio::initialize<Board::SystemClock, 500000, 10_pct>();
 
-	MODM_LOG_DEBUG << "Jo\r\n";
 	humi::initializeRadio(channel);
 
 	MODM_LOG_DEBUG << "go\r\n";

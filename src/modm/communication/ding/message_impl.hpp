@@ -66,6 +66,16 @@ ding::Message::Message(uint8_t destination_id, uint8_t source_id, uint16_t value
 	payload[1]    = (value>>8) & 0xff;
 }
 
+ding::Message::Message(uint8_t source_id, uint16_t voltage)
+{
+	payload_bytes = 2;
+	destination   = 0x00;
+	source        = source_id;
+	type          = ding::MessageType::Battery;
+	payload[0]    = (voltage>>0) & 0xff;
+	payload[1]    = (voltage>>8) & 0xff;
+}
+
 uint16_t ding::Message::getInteger()
 {
 	return (payload[1] << 8) | (payload[0]);
