@@ -21,6 +21,7 @@ enum class MessageType : uint8_t {
 	HumiDisplay    = 4,
 	RgbwController = 5,
 	Battery        = 6,
+	Scene          = 7,
 	Error          = 0xff
 };
 
@@ -38,9 +39,23 @@ public:
 	Message(uint8_t size, modm::Vector<uint8_t, 32> packet);
 	Message(modm::Vector<uint8_t, 32> packet);
 	Message(uint8_t destination_id, uint8_t source_id, uint16_t value);
-	Message(uint8_t source_id, uint16_t voltage);
+	Message(uint8_t source_id, uint16_t value);
 
 	uint16_t getInteger();
+};
+
+class BatteryMessage : public Message {
+public:
+	BatteryMessage(uint8_t source_id, uint16_t value) : Message(source_id, value) {
+		type = MessageType::Battery;
+	}
+};
+
+class SceneMessage : public Message {
+public:
+	SceneMessage(uint8_t source_id, uint16_t value) : Message(source_id, value) {
+		type = MessageType::Scene;
+	}
 };
 
 } // namespace modm

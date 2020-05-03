@@ -24,7 +24,7 @@
 using namespace modm::platform;
 
 constexpr uint16_t network = 0xA1A2;
-constexpr uint8_t  device  = 0xC1;
+constexpr uint8_t  device  = 0xC3;
 constexpr uint8_t  channel = 96;
 
 // Raduino
@@ -183,7 +183,7 @@ main()
 		do {
 			MODM_LOG_DEBUG << "send... ";
 
-			ding::Ding<Radio>::send(ding::Message(0x00, device, voltage));
+			ding::Ding<Radio>::send(ding::BatteryMessage(device, voltage));
 
 			while (!sent && !lost)
 				;

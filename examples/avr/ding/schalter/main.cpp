@@ -85,17 +85,17 @@ void handleButton()
 	disableInterrupts();
 
 	if (!S1::read())
-		Schalter::send(ding::Message(0x00, device, 1));
+		Schalter::send(ding::SceneMessage(device, 1));
 	if (!S2::read())
-		Schalter::send(ding::Message(0x00, device, 2));
+		Schalter::send(ding::SceneMessage(device, 2));
 	if (!S3::read())
-		Schalter::send(ding::Message(0x00, device, 3));
+		Schalter::send(ding::SceneMessage(device, 3));
 	if (!S4::read())
-		Schalter::send(ding::Message(0x00, device, 4));
+		Schalter::send(ding::SceneMessage(device, 4));
 	if (!S5::read())
-		Schalter::send(ding::Message(0x00, device, 5));
+		Schalter::send(ding::SceneMessage(device, 5));
 	if (!S6::read())
-		Schalter::send(ding::Message(0x00, device, 6));
+		Schalter::send(ding::SceneMessage(device, 6));
 
 	modm::delayMilliseconds(100);
 	enableInterrupts();
@@ -230,7 +230,7 @@ main()
 			do {
 				MODM_LOG_DEBUG << "send... ";
 
-				Schalter::send(ding::Message(device, voltage));
+				Schalter::send(ding::BatteryMessage(device, voltage));
 
 				while (!sent && !lost)
 					;
