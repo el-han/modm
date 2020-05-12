@@ -63,7 +63,7 @@ void ding::Ding<NRF24>::startTX()
 	// Power up
 	NRF24::clearBits(Register::CONFIG, Config::PRIM_RX);
 	NRF24::setBits(Register::CONFIG, Config::PWR_UP);
-	modm::delayMicroseconds(1500);
+	modm::delay_us(1500);
 }
 
 template <typename NRF24>
@@ -74,7 +74,7 @@ void ding::Ding<NRF24>::startRX()
 	// Power up
 	NRF24::setBits(Register::CONFIG, Config::PRIM_RX);
 	NRF24::setBits(Register::CONFIG, Config::PWR_UP);
-	modm::delayMicroseconds(1500);
+	modm::delay_us(1500);
 
 	NRF24::setCe();
 }
@@ -89,7 +89,7 @@ void ding::Ding<NRF24>::send(const ding::Message& message)
 
 	// pulse Ce
 	NRF24::setCe();
-	modm::delayMicroseconds(15);
+	modm::delay_us(15);
 	NRF24::resetCe();
 }
 

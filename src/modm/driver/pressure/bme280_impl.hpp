@@ -68,7 +68,7 @@ modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampli
 	}
 
 	// wait for chip to wake up.
-	modm::delayMilliseconds(300);
+	modm::delay_ms(300);
 
 	buffer[0] = i(Register::STATUS);
 
@@ -79,7 +79,7 @@ modm::Bme280<I2cMaster>::initialize(Mode mode, Oversampling pressure, Oversampli
 		RF_CALL_BLOCKING( this->runTransaction() );
 
 		if ((status & 0x01) != 0)
-			modm::delayMilliseconds(100);
+			modm::delay_ms(100);
 	}
 
 

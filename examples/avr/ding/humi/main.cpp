@@ -24,7 +24,7 @@
 using namespace modm::platform;
 
 constexpr uint16_t network = 0xA1A2;
-constexpr uint8_t  device  = 0xC3;
+constexpr uint8_t  device  = 0xC0;
 constexpr uint8_t  channel = 96;
 
 // Raduino
@@ -196,7 +196,7 @@ main()
 		} while (!success);
 		MODM_LOG_DEBUG << "sent\r\n";
 
-		modm::delayMilliseconds(100);
+		modm::delay_ms(100);
 		wdtSleep();
 	}
 }
