@@ -110,7 +110,7 @@ void ding::Licht<NRF24, RED, GREEN, BLUE, WHITE>::fade()
 		current_color.white = prev_color.white + (next_color.white - prev_color.white)*f;
 
 		set(current_color.red, current_color.green, current_color.blue, current_color.white);
-		modm::delayMilliseconds(5);
+		modm::delay_ms(5);
 	}
 }
 

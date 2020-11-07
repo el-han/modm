@@ -19,28 +19,36 @@
 using namespace modm::platform;
 
 constexpr uint16_t network = 0xA1A2;
-constexpr uint8_t  device  = 0xb2;
+constexpr uint8_t  device  = 0xb5;
 constexpr uint8_t  channel = 96;
 
-// typedef GpioPwmD6 Red;
-// typedef GpioPwmD5 Green;
-// typedef GpioPwmB1 Blue;
-// typedef GpioPwmB2 White;
-
-// typedef D8 Ce;
-// typedef D7 Csn;
-// typedef D3 InterruptPin;
-
-typedef GpioPwmD5 Red;
-typedef GpioPwmB1 Green;
-typedef GpioPwmD6 Blue;
-typedef GpioPwmD3 White;
+/* Kochanie */
+typedef GpioPwmD6 Red;
+typedef GpioPwmD5 Green;
+typedef GpioPwmB1 Blue;
+typedef GpioPwmB2 White;
 
 typedef D8 Ce;
-typedef D10 Csn;
-typedef D2 InterruptPin;
+typedef D7 Csn;
+typedef D3 InterruptPin;
 
-typedef modm::Nrf24Phy<SpiMaster, Csn, Ce> Radio;
+/* First Revision */
+// typedef GpioPwmD5 Red;
+// typedef GpioPwmB1 Green;
+// typedef GpioPwmD6 Blue;
+// typedef GpioPwmD3 White;
+
+// typedef D8 Ce;
+// typedef D10 Csn;
+// typedef D2 InterruptPin;
+
+typedef D13 Sck;
+typedef D11 Mosi;
+typedef D12 Miso;
+
+typedef BitBangSpiMaster<Sck, Mosi, Miso> SpiRadio;
+
+typedef modm::Nrf24Phy<SpiRadio, Csn, Ce> Radio;
 
 typedef ding::Licht<Radio, Red, Green, Blue, White> RGBWLicht;
 
@@ -70,7 +78,7 @@ handleInterrupt()
 int
 main()
 {
-	RGBWLicht::begin();
+	RGBWLicht::begin(ding::LichtData(255,100,0,0));
 
 	enableInterrupts();
 
@@ -78,8 +86,8 @@ main()
 	Ce::setOutput(modm::Gpio::Low);
 
 	// Enable SPI
-	SpiMaster::connect<D13::Sck, D11::Mosi, D12::Miso>();
-	SpiMaster::initialize<modm::platform::SystemClock, 500000, modm::Tolerance::Exact>();
+	SpiRadio::connect<Sck::BitBang, Mosi::BitBang, Miso::BitBang>();
+	SpiRadio::initialize<modm::platform::SystemClock, 500000, 10_pct>();
 
 	RGBWLicht::initializeRadio(channel);
 
@@ -100,7 +108,7 @@ main()
 	}
 }
 
-MODM_ISR(INT0)
+MODM_ISR(INT1)
 {
 	handleInterrupt();
 }
