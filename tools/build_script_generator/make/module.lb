@@ -56,7 +56,7 @@ def post_build(env):
                           "CONTENTS" if "flash" in m["name"] else "NO_CONTENTS")
                           for m in subs["memories"]]
         subs["flash_offset"] = env.get(":platform:cortex-m:linkerscript.flash_offset", 0)
-        subs["flash_address"] = hex(0x08000000 + env.get(":platform:cortex-m:linkerscript.flash_offset", 0))
+        subs["flash_address"] = hex(0x08000000 + subs["flash_offset"])
     else:
         subs["memories"] = []
     # Add SCons specific data
