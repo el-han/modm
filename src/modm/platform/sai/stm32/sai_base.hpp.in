@@ -1,0 +1,81 @@
+/*
+ * Copyright (c) 2013, Kevin Läufer
+ * Copyright (c) 2013-2017, Niklas Hauser
+ * Copyright (c) 2014, Daniel Krebs
+ * Copyright (c) 2020, Mike Wolfram
+ *
+ * This file is part of the modm project.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+// ----------------------------------------------------------------------------
+
+#ifndef MODM_STM32_SAI_BASE_HPP
+#define MODM_STM32_SAI_BASE_HPP
+
+#include <stdint.h>
+#include "../device.hpp"
+#include <modm/architecture/interface/register.hpp>
+
+namespace modm
+{
+
+namespace platform
+{
+
+/**
+ * Base class for the SAI classes
+ *
+ * Provides some common enum that do not depend on the specific SAI.
+ *
+ * @author Hannes Ellinger
+ * @ingroup	modm_platform_sai
+ */
+class SaiBase
+{
+public:
+	enum class
+	Interrupt : uint32_t
+	{
+		OverrunUnderrun                          = SAI_xIMR_OVRUDRIE,
+		MuteDetection                            = SAI_xIMR_MUTEDETIE,
+		WrongClockConfiguration                  = SAI_xIMR_WCKCFGIE,
+		FIFORequest                              = SAI_xIMR_FREQIE,
+		CodecNotReady                            = SAI_xIMR_CNRDYIE,
+		AnticipatedFrameSynchronizationDetection = SAI_xIMR_AFSDETIE,
+		LateFrameSynchronizationDetection        = SAI_xIMR_LFSDETIE,
+	};
+	MODM_FLAGS32(Interrupt);
+
+	enum class
+	InterruptFlag : uint32_t
+	{
+		OverrunUnderrun                          = SAI_xSR_OVRUDR,
+		MuteDetection                            = SAI_xSR_MUTEDET,
+		WrongClockConfiguration                  = SAI_xSR_WCKCFG,
+		FIFORequest                              = SAI_xSR_FREQ,
+		CodecNotReady                            = SAI_xSR_CNRDY,
+		AnticipatedFrameSynchronizationDetection = SAI_xSR_AFSDET,
+		LateFrameSynchronizationDetection        = SAI_xSR_LFSDET,
+		// FLVL[2:0] (FIFO Level Threshold)                = SAI_xSR_FLVL,
+	};
+	MODM_FLAGS32(InterruptFlag);
+
+	enum class
+	Mode : uint32_t
+	{
+		MasterTransmitter = 0,
+		MasterReceiver    = SAI_xCR1_MODE_0,
+		SlaveTransmitter  = SAI_xCR1_MODE_1,
+		SlaveReceiver     = SAI_xCR1_MODE_0 | SAI_xCR1_MODE_1,
+		All               = SAI_xCR1_MODE_0 | SAI_xCR1_MODE_1,
+	};
+};
+
+} // namespace platform
+
+} // namespace modm
+
+#endif // MODM_STM32_SAI_BASE_HPP

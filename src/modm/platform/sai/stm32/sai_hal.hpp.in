@@ -1,0 +1,125 @@
+/*
+ * Copyright (c) 2013, Kevin Läufer
+ * Copyright (c) 2013-2018, Niklas Hauser
+ * Copyright (c) 2014, Daniel Krebs
+ * Copyright (c) 2020, Mike Wolfram
+ *
+ * This file is part of the modm project.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+// ----------------------------------------------------------------------------
+
+#ifndef MODM_STM32_SAI_HAL{{ id }}_HPP
+#define MODM_STM32_SAI_HAL{{ id }}_HPP
+
+#include "sai_base.hpp"
+
+namespace modm
+{
+
+namespace platform
+{
+
+/**
+ * Serial audio interface (SAI{{ id }})
+ *
+ * Very basic implementation that exposes more hardware features than
+ * the regular Sai classes.
+ *
+ * @author		Hannes Ellinger
+ * @ingroup		modm_platform_sai modm_platform_sai_{{id}}
+ */
+class SaiHal{{ id }} : public SaiBase
+{
+public:
+	/// Enables the clock, resets the hardware and sets the SPE bit
+	static void
+	enable();
+
+	/// Disables the hw module (by disabling its clock line)
+	static void
+	disable();
+
+	/**
+	 * Initialize Sai Peripheral
+	 *
+	 * Enables clocks and the SAI peripheral
+	 */
+	static void
+	initialize(Mode = Mode::MasterTransmitter);
+
+	static void
+	setMode(Mode mode);
+
+// %% if "fifo" in features
+// 	static void
+// 	setRxFifoThreshold(RxFifoThreshold threshold);
+// %% endif
+
+	// /**
+	//  * Write 8 Bit to the data register
+	//  *
+	//  * @warning 	This method does NOT do any sanity checks!!
+	//  *				It is your responsibility to check if the register
+	//  *				is empty!
+	//  */
+	// static void
+	// write(uint8_t data);
+
+	// /**
+	//  * Returns the value of the data register
+	//  *
+	//  * @warning 	This method does NOT do any sanity checks!!
+	//  *				It is your responsibility to check if the register
+	//  *				contains something useful!
+	//  */
+	// static void
+	// read(uint8_t &data);
+
+	// /**
+	//  * Returns the value of the data register
+	//  *
+	//  * @warning 	This method does NOT do any sanity checks!!
+	//  *				It is your responsibility to check if the register
+	//  *				contains something useful!
+	//  */
+	// static void
+	// read(uint16_t &data);
+
+	static void
+	enableInterruptVector(bool enable, uint32_t priority);
+
+	static void
+	enableInterrupt(Interrupt_t interrupt);
+
+	static void
+	disableInterrupt(Interrupt_t interrupt);
+
+	static InterruptFlag_t
+	getInterruptFlags();
+
+	/**
+	 *
+	 *
+	 * @warning 	Not all InterruptFlags can be cleared this way.
+	 */
+	static void
+	acknowledgeInterruptFlag(InterruptFlag_t flags);
+
+	// static void
+	// enableTransfer();
+
+	// static void
+	// disableTransfer();
+};
+
+} // namespace platform
+
+} // namespace modm
+
+#include "sai_hal_{{ id }}_impl.hpp"
+
+#endif // MODM_STM32_SAI_HAL{{ id }}_HPP
