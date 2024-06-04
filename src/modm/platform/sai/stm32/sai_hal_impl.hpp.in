@@ -1,0 +1,134 @@
+/*
+ * Copyright (c) 2013, Kevin Läufer
+ * Copyright (c) 2013-2017, Niklas Hauser
+ * Copyright (c) 2014, Daniel Krebs
+ * Copyright (c) 2020, Mike Wolfram
+ *
+ * This file is part of the modm project.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+// ----------------------------------------------------------------------------
+
+#ifndef MODM_STM32_SAI_HAL{{ id }}_HPP
+#	error 	"Don't include this file directly, use 'sai_hal{{ id }}.hpp' instead!"
+#endif
+#include <modm/platform/clock/rcc.hpp>
+
+void inline
+modm::platform::SaiHal{{ id }}::enable()
+{
+	// Rcc::enable<Peripheral::Sai{{id}}>();
+	SAI{{ id }}_Block_{{ block }}->CR1 |= SAI_xCR1_SAIEN
+	// enableTransfer();
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::disable()
+{
+	SAI{{ id }}_Block_{{ block }}->CR1 &= ~SAI_xCR1_SAIEN
+	// Rcc::disable<Peripheral::Spi{{id}}>();
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::initialize(Mode mode)
+{
+	// disable peripheral
+	disable()
+
+	// set mode
+	setMode(mode);
+
+	// reenable peripheral
+	enable();
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::setMode(Mode mode)
+{
+	SAI{{ id }}_Block_{{ block }}->CR1 = SAI{{ id }}_Block_{{ block }}->CR1 & ~static_cast<uint32_t>(Mode::All)
+	                                                                        | static_cast<uint32_t>(mode);
+}
+
+// void inline
+// modm::platform::SaiHal{{ id }}::write(uint16_t data)
+// {
+// 	SPI{{ id }}->DR = data;
+// }
+
+// void inline
+// modm::platform::SaiHal{{ id }}::write(uint8_t data)
+// {
+// %% if "data-size" in features
+// 	*((__IO uint8_t *) &SPI{{ id}}->DR) = data;
+// %% else
+// 	write(static_cast<uint16_t>(data));
+// %% endif
+
+// }
+
+// void inline
+// modm::platform::SaiHal{{ id }}::read(uint8_t &data)
+// {
+// 	data = static_cast<uint8_t>(SPI{{ id }}->DR);
+// }
+
+// void inline
+// modm::platform::SaiHal{{ id }}::read(uint16_t &data)
+// {
+// 	data = static_cast<uint16_t>(SPI{{ id }}->DR);
+// }
+
+void inline
+modm::platform::SaiHal{{ id }}::enableInterruptVector(bool enable, uint32_t priority)
+{
+	if (enable) {
+		// Set priority for the interrupt vector
+		NVIC_SetPriority({{ irq }}_IRQn, priority);
+		// register IRQ at the NVIC
+		NVIC_EnableIRQ({{ irq }}_IRQn);
+	}
+	else {
+		NVIC_DisableIRQ({{ irq }}_IRQn);
+	}
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::enableInterrupt(Interrupt_t interrupt)
+{
+	SPI{{ id }}->CR2 |= interrupt.value;
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::disableInterrupt(Interrupt_t interrupt)
+{
+	SPI{{ id }}->CR2 &= ~interrupt.value;
+}
+
+modm::platform::SaiHal{{ id }}::InterruptFlag_t inline
+modm::platform::SaiHal{{ id }}::getInterruptFlags()
+{
+	return InterruptFlag_t(SPI{{ id }}->SR);
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::acknowledgeInterruptFlag(InterruptFlag_t /*flags*/)
+{
+	// TODO: implement; see STM32F3 reference manual p. 736
+	// SPI{{ id }}->SR = flags.value;
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::enableTransfer()
+{
+	SPI{{ id }}->CR1 |= SPI_CR1_SPE;
+}
+
+void inline
+modm::platform::SaiHal{{ id }}::disableTransfer()
+{
+	SPI{{ id }}->CR1 &= ~SPI_CR1_SPE;
+	__DSB();
+}

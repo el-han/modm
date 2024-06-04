@@ -18,6 +18,7 @@ def init(module):
 [Nucleo kit for STM32F767ZI](https://www.st.com/en/evaluation-tools/nucleo-f767zi.html)
 """
 
+
 def prepare(module, options):
     if not options[":target"].partname.startswith("stm32f767zi"):
         return False
@@ -31,6 +32,7 @@ def prepare(module, options):
         ":platform:uart:3")
 
     return True
+
 
 def build(env):
     env.outbasepath = "modm/src/modm/board"

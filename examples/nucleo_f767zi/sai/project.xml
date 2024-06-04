@@ -1,0 +1,11 @@
+<library>
+  <extends>modm:nucleo-f767zi</extends>
+  <options>
+    <option name="modm:build:build.path">./build</option>
+  </options>
+  <modules>
+    <module>modm:platform:gpio</module>
+    <module>modm:platform:sai</module>
+    <module>modm:build:scons</module>
+  </modules>
+</library>
