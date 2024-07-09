@@ -81,6 +81,8 @@ struct SystemClock
 	static constexpr uint32_t Timer12 = Apb1Timer;
 	static constexpr uint32_t Timer13 = Apb1Timer;
 	static constexpr uint32_t Timer14 = Apb1Timer;
+
+	static constexpr uint32_t Usb     = 48_MHz;
 	static constexpr uint32_t Iwdg = Rcc::LsiFrequency;
 	static constexpr uint32_t Rtc = 32.768_kHz;
 
@@ -95,14 +97,22 @@ struct SystemClock
 			.pllM = 4,		// 8MHz / M=4   -> 2MHz
 			.pllN = 216,	// 2MHz * N=216 -> 432MHz
 			.pllP = 2		// 432MHz / P=2 -> 216MHz = F_cpu
-			//.pllQ = 9		// 432MHz / P=2 -> 48MHz (USB, etc.)
+			// .pllQ = 9		// 432MHz / P=2 -> 48MHz (USB, etc.)
 		};
+		Rcc::enablePll(Rcc::PllSource::ExternalClock, pllFactors);
+
+		const Rcc::PllSaiFactors pllSaiFactors{
+			.pllSaiN = 96,	//   2MHz * N= 96 -> 192MHz
+			.pllSaiP = 4,	// 192MHz / P=  4 ->  48MHz = F_usb
+		};
+		Rcc::enablePllSai(pllSaiFactors);
 		Rcc::enablePll(Rcc::PllSource::ExternalClock, pllFactors);
 
 		// Required for 216 MHz operation
 		Rcc::enableOverdriveMode();
 		Rcc::setFlashLatency<Frequency>();
 		Rcc::enableSystemClock(Rcc::SystemClockSource::Pll);
+		Rcc::setClock48Source(Rcc::Clock48Source::PllSaiP);
 		// APB1 is running at 54MHz, since AHB / 4 = 54MHz (= limit)
 		Rcc::setApb1Prescaler(Rcc::Apb1Prescaler::Div4);
 		// APB2 is running at 108MHz, since AHB / 2 = 108MHz (= limit)
@@ -123,6 +133,22 @@ using LedBlue = GpioOutputB7;	// LED2 [Blue]
 using LedRed = GpioOutputB14;	// LED3 [Red]
 using Leds = SoftwareGpioPort< LedRed, LedBlue, LedGreen >;
 /// @}
+
+namespace usb
+{
+/// @ingroup modm_board_nucleo_f446ze
+/// @{
+using Vbus = GpioA9;
+using Id = GpioA10;
+using Dm = GpioA11;
+using Dp = GpioA12;
+
+using Overcurrent = GpioInputG7;	// OTG_FS_OverCurrent
+using Power = GpioOutputG6;			// OTG_FS_PowerSwitchOn
+
+using Device = UsbFs;
+/// @}
+}
 
 namespace stlink
 {
@@ -153,8 +179,22 @@ initialize()
 
     Button::setInput();
 }
-/// @}
 
+inline void
+initializeUsbFs(uint8_t priority=3)
+{
+	usb::Device::initialize<SystemClock>(priority);
+	usb::Device::connect<usb::Dm::Dm, usb::Dp::Dp, usb::Id::Id>();
+
+	usb::Overcurrent::setInput();
+	usb::Vbus::setInput();
+	// Force device mode
+	USB_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
+	modm::delay_ms(25);
+	// Enable VBUS sense (B device) via pin PA9
+	USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBDEN;
+}
+/// @}
 }
 
 #endif  // MODM_STM32_NUCLEO_F767ZI_HPP
