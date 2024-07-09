@@ -1,0 +1,14 @@
+<library>
+  <extends>modm:nucleo-f767zi</extends>
+  <options>
+    <option name="modm:build:build.path">../../../build/nucleo_f767zi/usbserial</option>
+  </options>
+  <modules>
+    <module>modm:build:scons</module>
+    <module>modm:tinyusb</module>
+    <module>modm:tinyusb:device:audio</module>
+    <module>modm:tinyusb:device:cdc</module>
+    <module>modm:processing:timer</module>
+    <module>modm:io</module>
+  </modules>
+</library>
