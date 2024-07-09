@@ -1,0 +1,13 @@
+<library>
+  <extends>modm:nucleo-f767zi</extends>
+  <options>
+    <option name="modm:build:build.path">../../../build/nucleo_f767zi/usbserial</option>
+    <option name="modm:tinyusb:config">device.cdc</option>
+  </options>
+  <modules>
+    <module>modm:build:scons</module>
+    <module>modm:tinyusb</module>
+    <module>modm:processing:timer</module>
+    <module>modm:io</module>
+  </modules>
+</library>
