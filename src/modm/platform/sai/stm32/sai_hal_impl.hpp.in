@@ -17,26 +17,28 @@
 #endif
 #include <modm/platform/clock/rcc.hpp>
 
+{% for sai_block in ['A', 'B'] %}
+
 void inline
-modm::platform::SaiHal{{ id }}::enable()
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enable()
 {
 	// Rcc::enable<Peripheral::Sai{{id}}>();
-	SAI{{ id }}_Block_{{ block }}->CR1 |= SAI_xCR1_SAIEN
+	SAI{{ id }}_Block_{{ sai_block }}->CR1 |= SAI_xCR1_SAIEN;
 	// enableTransfer();
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::disable()
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::disable()
 {
-	SAI{{ id }}_Block_{{ block }}->CR1 &= ~SAI_xCR1_SAIEN
+	SAI{{ id }}_Block_{{ sai_block }}->CR1 &= ~SAI_xCR1_SAIEN;
 	// Rcc::disable<Peripheral::Spi{{id}}>();
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::initialize(Mode mode)
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::initialize(Mode mode)
 {
 	// disable peripheral
-	disable()
+	disable();
 
 	// set mode
 	setMode(mode);
@@ -46,20 +48,21 @@ modm::platform::SaiHal{{ id }}::initialize(Mode mode)
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::setMode(Mode mode)
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::setMode(Mode mode)
 {
-	SAI{{ id }}_Block_{{ block }}->CR1 = SAI{{ id }}_Block_{{ block }}->CR1 & ~static_cast<uint32_t>(Mode::All)
-	                                                                        | static_cast<uint32_t>(mode);
+	SAI{{ id }}_Block_{{ sai_block }}->CR1 = ( SAI{{ id }}_Block_{{ sai_block }}->CR1 &
+	                                         ~static_cast<uint32_t>(Mode::All) ) |
+	                                         static_cast<uint32_t>(mode);
 }
 
 // void inline
-// modm::platform::SaiHal{{ id }}::write(uint16_t data)
+// modm::platform::SaiHal{{ id }}Block{{ sai_block }}::write(uint16_t data)
 // {
 // 	SPI{{ id }}->DR = data;
 // }
 
 // void inline
-// modm::platform::SaiHal{{ id }}::write(uint8_t data)
+// modm::platform::SaiHal{{ id }}Block{{ sai_block }}::write(uint8_t data)
 // {
 // %% if "data-size" in features
 // 	*((__IO uint8_t *) &SPI{{ id}}->DR) = data;
@@ -70,19 +73,19 @@ modm::platform::SaiHal{{ id }}::setMode(Mode mode)
 // }
 
 // void inline
-// modm::platform::SaiHal{{ id }}::read(uint8_t &data)
+// modm::platform::SaiHal{{ id }}Block{{ sai_block }}::read(uint8_t &data)
 // {
 // 	data = static_cast<uint8_t>(SPI{{ id }}->DR);
 // }
 
 // void inline
-// modm::platform::SaiHal{{ id }}::read(uint16_t &data)
+// modm::platform::SaiHal{{ id }}Block{{ sai_block }}::read(uint16_t &data)
 // {
 // 	data = static_cast<uint16_t>(SPI{{ id }}->DR);
 // }
 
 void inline
-modm::platform::SaiHal{{ id }}::enableInterruptVector(bool enable, uint32_t priority)
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enableInterruptVector(bool enable, uint32_t priority)
 {
 	if (enable) {
 		// Set priority for the interrupt vector
@@ -96,39 +99,41 @@ modm::platform::SaiHal{{ id }}::enableInterruptVector(bool enable, uint32_t prio
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::enableInterrupt(Interrupt_t interrupt)
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enableInterrupt(Interrupt_t interrupt)
 {
 	SPI{{ id }}->CR2 |= interrupt.value;
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::disableInterrupt(Interrupt_t interrupt)
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::disableInterrupt(Interrupt_t interrupt)
 {
 	SPI{{ id }}->CR2 &= ~interrupt.value;
 }
 
-modm::platform::SaiHal{{ id }}::InterruptFlag_t inline
-modm::platform::SaiHal{{ id }}::getInterruptFlags()
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::InterruptFlag_t inline
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::getInterruptFlags()
 {
 	return InterruptFlag_t(SPI{{ id }}->SR);
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::acknowledgeInterruptFlag(InterruptFlag_t /*flags*/)
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::acknowledgeInterruptFlag(InterruptFlag_t /*flags*/)
 {
 	// TODO: implement; see STM32F3 reference manual p. 736
 	// SPI{{ id }}->SR = flags.value;
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::enableTransfer()
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enableTransfer()
 {
 	SPI{{ id }}->CR1 |= SPI_CR1_SPE;
 }
 
 void inline
-modm::platform::SaiHal{{ id }}::disableTransfer()
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::disableTransfer()
 {
 	SPI{{ id }}->CR1 &= ~SPI_CR1_SPE;
 	__DSB();
 }
+
+{% endfor %}

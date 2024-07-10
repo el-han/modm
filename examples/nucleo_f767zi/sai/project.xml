@@ -5,7 +5,7 @@
   </options>
   <modules>
     <module>modm:platform:gpio</module>
-    <module>modm:platform:sai</module>
+    <module>modm:platform:sai:1</module>
     <module>modm:build:scons</module>
   </modules>
 </library>

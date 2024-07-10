@@ -14,7 +14,7 @@
  */
 // ----------------------------------------------------------------------------
 
-#include "spi_master_{{id}}.hpp"
+#include "sai_master_{{id}}.hpp"
 
 // modm::ResumableResult<uint8_t>
 // modm::platform::SpiMaster{{ id }}::transfer(uint8_t data)

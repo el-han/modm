@@ -13,7 +13,7 @@
 
 using namespace Board;
 
-using Sai = SaiMaster1_Dma<DmaRx, DmaTx>;
+using Sai = SaiMaster1;
 
 int
 main()
