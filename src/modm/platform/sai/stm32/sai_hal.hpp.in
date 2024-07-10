@@ -23,6 +23,8 @@ namespace modm
 namespace platform
 {
 
+{% for sai_block in ['A', 'B'] %}
+
 /**
  * Serial audio interface (SAI{{ id }})
  *
@@ -32,7 +34,7 @@ namespace platform
  * @author		Hannes Ellinger
  * @ingroup		modm_platform_sai modm_platform_sai_{{id}}
  */
-class SaiHal{{ id }} : public SaiBase
+class SaiHal{{ id }}Block{{ sai_block }} : public SaiBase
 {
 public:
 	/// Enables the clock, resets the hardware and sets the SPE bit
@@ -109,12 +111,14 @@ public:
 	static void
 	acknowledgeInterruptFlag(InterruptFlag_t flags);
 
-	// static void
-	// enableTransfer();
+	static void
+	enableTransfer();
 
-	// static void
-	// disableTransfer();
+	static void
+	disableTransfer();
 };
+
+{% endfor %}
 
 } // namespace platform
 

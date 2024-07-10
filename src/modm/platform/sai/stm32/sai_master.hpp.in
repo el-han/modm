@@ -18,7 +18,6 @@
 #ifndef MODM_STM32_SAI_MASTER{{ id }}_HPP
 #define MODM_STM32_SAI_MASTER{{ id }}_HPP
 
-#include <modm/architecture/interface/sai_master.hpp>
 #include <modm/platform/gpio/connector.hpp>
 #include <modm/math/algorithm/prescaler.hpp>
 #include "sai_hal_{{ id }}.hpp"
@@ -37,7 +36,7 @@ namespace platform
  * @author	Hannes Ellinger
  * @ingroup	modm_platform_sai modm_platform_sai_{{id}}
  */
-class SaiMaster{{ id }} : public modm::SaiMaster
+class SaiMaster{{ id }}
 {
 protected:
 	// `state` must be protected to allow access from SaiMasterDma subclass TODO still correct?
@@ -45,7 +44,8 @@ protected:
 	// Bit1: block transfer state
 	static inline uint8_t state{0};
 public:
-	using Hal = SaiHal{{ id }};
+	using HalA = SaiHal{{ id }}BlockA;
+	using HalB = SaiHal{{ id }}BlockB;
 
 	// /// Spi Data Mode, Mode0 is the most common mode
 	// enum class
@@ -74,10 +74,10 @@ public:
 	connect()
 	{
 		using Connector = GpioConnector<Peripheral::Sai{{ id }}, Signals...>;
-		using Fs = typename Connector::template GetSignal<Gpio::Signal::FS>;
-		using Sck = typename Connector::template GetSignal<Gpio::Signal::SCK>;
-		using Sd = typename Connector::template GetSignal<Gpio::Signal::SD>;
-		using Mclk = typename Connector::template GetSignal<Gpio::Signal::MCLK>;
+		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fsa>;  // TODO: Block A and B
+		using Sck = typename Connector::template GetSignal<Gpio::Signal::Sck>;
+		using Sd = typename Connector::template GetSignal<Gpio::Signal::Sd>;
+		using Mclk = typename Connector::template GetSignal<Gpio::Signal::Mck>;
 
 		// Connector::disconnect();
 		Fs::setOutput(Gpio::OutputType::PushPull);

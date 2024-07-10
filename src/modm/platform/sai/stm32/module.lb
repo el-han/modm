@@ -61,19 +61,19 @@ def init(module):
 
 
 def prepare(module, options):
+
     device = options[":target"]
-    if not device.has_driver("sai:stm32"):
+    if not device.has_driver("sai:stm32*"):
         return False
 
     module.depends(
         ":architecture:register",
-        ":architecture:sai",
         ":cmsis:device",
         ":math:algorithm",
         ":platform:gpio",
         ":platform:rcc")
 
-    for driver in device.get_all_drivers("sai:stm32"):
+    for driver in device.get_all_drivers("sai:stm32*"):
         for instance in driver["instance"]:
             module.add_submodule(Instance(driver, instance))
 
