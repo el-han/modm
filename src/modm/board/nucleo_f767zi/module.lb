@@ -29,7 +29,8 @@ def prepare(module, options):
         ":platform:clock",
         ":platform:core",
         ":platform:gpio",
-        ":platform:uart:3")
+        ":platform:uart:3",
+        ":platform:usb:fs")
 
     return True
 
