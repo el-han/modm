@@ -64,14 +64,235 @@ public:
 	MODM_FLAGS32(InterruptFlag);
 
 	enum class
+	ConfigurationRegister1 : uint32_t
+	{
+		MODE0    = Bit0,
+		MODE1    = Bit1,
+		PRTCFG0  = Bit2,
+		PRCTFG1  = Bit3,
+
+		DS0      = Bit5,
+		DS1      = Bit6,
+		DS2      = Bit7,
+		LSBFIRST = Bit8,
+		CKSTR    = Bit9,
+		SYNCEN0  = Bit10,
+		SYNCEN1  = Bit11,
+		MONO     = Bit12,
+		OUTDRIV  = Bit13,
+
+		SAIEN    = Bit16,
+		DMAEN    = Bit17,
+		NODIV    = Bit19,
+		MCKDIV0  = Bit20,
+		MCKDIV1  = Bit21,
+		MCKDIV2  = Bit22,
+		MCKDIV3  = Bit23
+	};
+	MODM_FLAGS32(ConfigurationRegister1);
+
+	enum class
 	Mode : uint32_t
 	{
 		MasterTransmitter = 0,
 		MasterReceiver    = SAI_xCR1_MODE_0,
 		SlaveTransmitter  = SAI_xCR1_MODE_1,
-		SlaveReceiver     = SAI_xCR1_MODE_0 | SAI_xCR1_MODE_1,
-		All               = SAI_xCR1_MODE_0 | SAI_xCR1_MODE_1,
+		SlaveReceiver     = SAI_xCR1_MODE_1 | SAI_xCR1_MODE_0,
+		All               = SAI_xCR1_MODE_1 | SAI_xCR1_MODE_0,
 	};
+
+	enum class
+	Protocol : uint32_t
+	{
+		Free  = 0,
+		Spdif = SAI_xCR1_PRTCFG_0,
+		AC97  = SAI_xCR1_PRTCFG_1,
+		All   = SAI_xCR1_PRTCFG_0 | SAI_xCR1_PRTCFG_1
+	};
+
+	enum class
+	DataSize : uint32_t
+	{
+		DataSize8Bit  = SAI_xCR1_DS_1,
+		DataSize10Bit = SAI_xCR1_DS_1 | SAI_xCR1_DS_0,
+		DataSize16Bit = SAI_xCR1_DS_2,
+		DataSize20Bit = SAI_xCR1_DS_2 | SAI_xCR1_DS_0,
+		DataSize24Bit = SAI_xCR1_DS_2 | SAI_xCR1_DS_1,
+		DataSize32Bit = SAI_xCR1_DS_2 | SAI_xCR1_DS_1 | SAI_xCR1_DS_0,
+		All           = SAI_xCR1_DS_2 | SAI_xCR1_DS_1 | SAI_xCR1_DS_0
+	};
+
+	enum class
+	SyncEn : uint32_t
+	{
+		Async    = 0,
+		Internal = SAI_xCR1_SYNCEN_0,
+		External = SAI_xCR1_SYNCEN_1,
+		All      = SAI_xCR1_SYNCEN_0 | SAI_xCR1_SYNCEN_1
+	};
+
+	enum class
+	MasterClockDivider : uint32_t
+	{
+		Div1  = 0,
+		Div2  = SAI_xCR1_MCKDIV_0,
+		Div4  = SAI_xCR1_MCKDIV_1,
+		Div6  = SAI_xCR1_MCKDIV_1 | SAI_xCR1_MCKDIV_0,
+		Div8  = SAI_xCR1_MCKDIV_2,
+		Div10 = SAI_xCR1_MCKDIV_2 | SAI_xCR1_MCKDIV_0,
+		Div12 = SAI_xCR1_MCKDIV_2 | SAI_xCR1_MCKDIV_1,
+		Div14 = SAI_xCR1_MCKDIV_2 | SAI_xCR1_MCKDIV_1 | SAI_xCR1_MCKDIV_0,
+		Div16 = SAI_xCR1_MCKDIV_3,
+		Div18 = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_0,
+		Div20 = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_1,
+		Div22 = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_1 | SAI_xCR1_MCKDIV_0,
+		Div24 = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_2,
+		Div26 = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_2 | SAI_xCR1_MCKDIV_0,
+		Div28 = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_2 | SAI_xCR1_MCKDIV_1,
+		Div30 = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_2 | SAI_xCR1_MCKDIV_1 | SAI_xCR1_MCKDIV_0,
+		All   = SAI_xCR1_MCKDIV_3 | SAI_xCR1_MCKDIV_2 | SAI_xCR1_MCKDIV_1 | SAI_xCR1_MCKDIV_0
+	};
+
+	enum class
+	ConfigurationRegister2 : uint32_t
+	{
+		FTH0     = Bit0,
+		FTH1     = Bit1,
+		FTH2     = Bit2,
+		FFLUSH   = Bit3,
+		TRIS     = Bit4,
+		MUTE     = Bit5,
+		MUTEVAL  = Bit6,
+		MUTECNT0 = Bit7,
+		MUTECNT1 = Bit8,
+		MUTECNT2 = Bit9,
+		MUTECNT3 = Bit10,
+		MUTECNT4 = Bit11,
+		MUTECNT5 = Bit12,
+		CPL      = Bit13,
+		COMP0    = Bit14,
+		COMP1    = Bit15,
+	};
+	MODM_FLAGS32(ConfigurationRegister2);
+
+	enum class
+	FifoThreshold : uint32_t
+	{
+		Empty        = 0,
+		OneQuater    = SAI_xCR2_FTH_0,
+		Half         = SAI_xCR2_FTH_1,
+		ThreeQuaters = SAI_xCR2_FTH_1 | SAI_xCR2_FTH_0,
+		Full         = SAI_xCR2_FTH_2,
+		All          = SAI_xCR2_FTH_0 | SAI_xCR2_FTH_1 | SAI_xCR2_FTH_2
+	};
+
+	typedef Value<ConfigurationRegister2_t, 6, 7> MuteCounter_t;
+
+	enum class
+	CompandingMode : uint32_t
+	{
+		None = 0,
+		ULaw = SAI_xCR2_COMP_1,
+		ALaw = SAI_xCR2_COMP_1 | SAI_xCR2_COMP_0,
+		All  = SAI_xCR2_COMP_1 | SAI_xCR2_COMP_0
+	};
+
+	enum class
+	FrameConfigurationRegister : uint32_t
+	{
+		FRL0 = Bit0,
+		FRL1 = Bit1,
+		FRL2 = Bit2,
+		FRL3 = Bit3,
+		FRL4 = Bit4,
+		FRL5 = Bit5,
+		FRL6 = Bit6,
+		FRL7 = Bit7,
+		FSALL0 = Bit8,
+		FSALL1 = Bit9,
+		FSALL2 = Bit10,
+		FSALL3 = Bit11,
+		FSALL4 = Bit12,
+		FSALL5 = Bit13,
+		FSALL6 = Bit14,
+
+		FSDEF = Bit16,
+		FSPOL = Bit17,
+		FSOFF = Bit18
+	};
+	MODM_FLAGS32(FrameConfigurationRegister);
+
+	typedef Value<FrameConfigurationRegister_t, 8, 0> FrameLength_t;
+
+	typedef Value<FrameConfigurationRegister_t, 7, 8> FSActiveLevelLength_t;
+
+	enum class
+	SlotRegister : uint32_t
+	{
+		FBOFF0 = Bit0,
+		FBOFF1 = Bit1,
+		FBOFF2 = Bit2,
+		FBOFF3 = Bit3,
+		FBOFF4 = Bit4,
+
+		SLOTSZ0 = Bit6,
+		SLOTSZ1 = Bit7,
+		NBSLOT0 = Bit8,
+		NBSLOT1 = Bit9,
+		NBSLOT2 = Bit10,
+		NBSLOT3 = Bit11,
+
+		SLOTEN0 = Bit16,
+		SLOTEN1 = Bit17,
+		SLOTEN2 = Bit18,
+		SLOTEN3 = Bit19,
+		SLOTEN4 = Bit20,
+		SLOTEN5 = Bit21,
+		SLOTEN6 = Bit22,
+		SLOTEN7 = Bit23,
+		SLOTEN8 = Bit24,
+		SLOTEN9 = Bit25,
+		SLOTEN10 = Bit26,
+		SLOTEN11 = Bit27,
+		SLOTEN12 = Bit28,
+		SLOTEN13 = Bit29,
+		SLOTEN14 = Bit30,
+		SLOTEN15 = Bit31
+	};
+	MODM_FLAGS32(SlotRegister);
+
+	typedef Value<SlotRegister_t, 5, 0> FirstBitOffset_t;
+
+	enum class
+	SlotSize : uint32_t
+	{
+		DataSize = 0,
+		SlotSize16Bit = SAI_xSLOTR_SLOTSZ_0,
+		SlotSize32Bit = SAI_xSLOTR_SLOTSZ_1,
+		All           = SAI_xSLOTR_SLOTSZ_0 | SAI_xSLOTR_SLOTSZ_1
+	};
+
+	typedef Value<SlotRegister_t, 4, 8> SlotNumber_t;
+
+	enum class
+	GlobalConfigurationRegister : uint32_t
+	{
+		SYNCIN0  = Bit0,
+		SYNCIN1  = Bit1,
+		SYNCOUT0 = Bit4,
+		SYNCOUT1 = Bit5,
+	};
+	MODM_FLAGS32(GlobalConfigurationRegister);
+
+	enum class
+	SyncOut : uint32_t
+	{
+		NoSync   = 0,
+		BlockA   = SAI_GCR_SYNCOUT_0,
+		BlockB   = SAI_GCR_SYNCOUT_1,
+		All      = SAI_GCR_SYNCOUT_0 | SAI_GCR_SYNCOUT_0
+	};
+
 };
 
 } // namespace platform

@@ -22,7 +22,7 @@
 void inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enable()
 {
-	// Rcc::enable<Peripheral::Sai{{id}}>();
+	Rcc::enable<Peripheral::Sai{{id}}>();
 	SAI{{ id }}_Block_{{ sai_block }}->CR1 |= SAI_xCR1_SAIEN;
 	// enableTransfer();
 }
@@ -31,14 +31,14 @@ void inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::disable()
 {
 	SAI{{ id }}_Block_{{ sai_block }}->CR1 &= ~SAI_xCR1_SAIEN;
-	// Rcc::disable<Peripheral::Spi{{id}}>();
+	Rcc::disable<Peripheral::Spi{{id}}>();
 }
 
 void inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::initialize(Mode mode)
 {
 	// disable peripheral
-	disable();
+	enable();
 
 	// set mode
 	setMode(mode);
