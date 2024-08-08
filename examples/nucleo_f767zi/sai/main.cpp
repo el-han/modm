@@ -9,17 +9,27 @@
  */
 // ----------------------------------------------------------------------------
 
+#include <cstdint>
 #include <modm/board.hpp>
+#include "modm/platform/sai/sai_base.hpp"
+#include "stm32f767xx.h"
+// #include <modm/sai_master.hpp>
 
 using namespace Board;
 
 using Sai = SaiMaster1;
 
+using Mclk = GpioOutputE2;
+using Fs = GpioOutputE4;
+using Sck = GpioOutputE5;
+using Sd = GpioOutputE6;
+
 int
 main()
 {
 	Board::initialize();
-	Leds::setOutput();
+
+	Sai::connect<Mclk::Mclka, Fs::Fsa, Sck::Scka, Sd::Sda>();
 
 	// Use the logging streams to print some messages.
 	// Change MODM_LOG_LEVEL above to enable or disable these messages
@@ -28,15 +38,53 @@ main()
 	MODM_LOG_WARNING << "warning" << modm::endl;
 	MODM_LOG_ERROR   << "error"   << modm::endl;
 
-	uint32_t counter(0);
+	Rcc::enable<Peripheral::Sai1>();
+
+	SAI1->GCR = 0x00000000;
+	// SAI1_Block_A->CR1 = 0x00200280;
+	SAI1_Block_A->CR1 = static_cast<uint32_t>(SaiBase::DataSize::DataSize16Bit) |
+	                    static_cast<uint32_t>(SaiBase::MasterClockDivider::Div4) |
+	                    static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
+	                    static_cast<uint32_t>(SaiBase::Mode::MasterTransmitter);
+	SAI1_Block_A->CR2 = 0x00000000;
+	// SAI1_Block_A->FRCR = 0x0006001f;
+	SAI1_Block_A->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
+	                     static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
+	                     static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
+	// SAI1_Block_A->SLOTR = 0x00030200;
+	SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(2).value) |
+	                      static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
+	                      static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1);
+
+	// Set SAIEN
+	SAI1_Block_A->CR1 |= (1 << 16);
+
+	MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR1) << modm::endl;
+	MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR2) << modm::endl;
+	MODM_LOG_INFO << "FRCR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->FRCR) << modm::endl;
+	MODM_LOG_INFO << "SLOTR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SLOTR) << modm::endl;
+	MODM_LOG_INFO << "SR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SR) << modm::endl;
 
 	while (true)
 	{
-		LedGreen::toggle();
-		// Leds::write(1 << (counter % (Leds::width+1) ));
-		modm::delay(Button::read() ? 100ms : 500ms);
+		if ( ((SAI1_Block_A->SR >> 16) & 0b111) < 0b100) {
+			SAI1_Block_A->DR = 0x00bb00aa;
+			SAI1_Block_A->DR = 0x001100ff;
+		}
+		// LedGreen::toggle();
+		// // Mclk::toggle();
+		// // Fs::toggle();
+		// // Sck::toggle();
+		// // Sd::toggle();
+		// // Leds::write(1 << (counter % (Leds::width+1) ));
+		// modm::delay(Button::read() ? 100ms : 500ms);
 
-		MODM_LOG_INFO << "loop: " << counter++ << modm::endl;
+		// MODM_LOG_INFO << "loop: " << counter++ << modm::endl;
+		// MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR1) << modm::endl;
+		// MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR2) << modm::endl;
+		// MODM_LOG_INFO << "FRCR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->FRCR) << modm::endl;
+		// MODM_LOG_INFO << "SLOTR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SLOTR) << modm::endl;
+		// MODM_LOG_INFO << "SR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SR) << modm::endl;
 	}
 
 	return 0;
