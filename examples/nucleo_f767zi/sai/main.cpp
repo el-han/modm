@@ -56,8 +56,15 @@ main()
 	                      static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
 	                      static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1);
 
+	// Enable FIFO request interrupt
+	Sai::HalA::enableInterrupt(SaiBase::Interrupt::FIFORequest);
+	Sai::HalA::enableInterruptVector(true, 10);
+
 	// Set SAIEN
-	SAI1_Block_A->CR1 |= (1 << 16);
+	Sai::HalA::enableTransfer();
+
+	SAI1_Block_A->DR = 0x00bb00aa;
+	SAI1_Block_A->DR = 0x001100ff;
 
 	MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR1) << modm::endl;
 	MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR2) << modm::endl;
@@ -67,25 +74,24 @@ main()
 
 	while (true)
 	{
-		if ( ((SAI1_Block_A->SR >> 16) & 0b111) < 0b100) {
-			SAI1_Block_A->DR = 0x00bb00aa;
-			SAI1_Block_A->DR = 0x001100ff;
-		}
-		// LedGreen::toggle();
-		// // Mclk::toggle();
-		// // Fs::toggle();
-		// // Sck::toggle();
-		// // Sd::toggle();
-		// // Leds::write(1 << (counter % (Leds::width+1) ));
-		// modm::delay(Button::read() ? 100ms : 500ms);
+		LedGreen::toggle();
 
-		// MODM_LOG_INFO << "loop: " << counter++ << modm::endl;
-		// MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR1) << modm::endl;
-		// MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR2) << modm::endl;
-		// MODM_LOG_INFO << "FRCR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->FRCR) << modm::endl;
-		// MODM_LOG_INFO << "SLOTR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SLOTR) << modm::endl;
-		// MODM_LOG_INFO << "SR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SR) << modm::endl;
+		modm::delay(1s);
+
+		MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR1) << modm::endl;
+		MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->CR2) << modm::endl;
+		MODM_LOG_INFO << "FRCR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->FRCR) << modm::endl;
+		MODM_LOG_INFO << "SLOTR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SLOTR) << modm::endl;
+		MODM_LOG_INFO << "SR: 0x" << modm::hex << (uint32_t)(SAI1_Block_A->SR) << modm::endl;
 	}
 
 	return 0;
+}
+
+MODM_ISR(SAI1)
+{
+	if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
+		SAI1_Block_A->DR = 0x00bb00aa;
+		SAI1_Block_A->DR = 0x001100ff;
+	}
 }

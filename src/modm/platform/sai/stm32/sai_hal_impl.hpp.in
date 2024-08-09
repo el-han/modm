@@ -101,38 +101,37 @@ modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enableInterruptVector(bool e
 void inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enableInterrupt(Interrupt_t interrupt)
 {
-	SPI{{ id }}->CR2 |= interrupt.value;
+	SAI{{ id }}_Block_{{ sai_block }}->IMR |= interrupt.value;
 }
 
 void inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::disableInterrupt(Interrupt_t interrupt)
 {
-	SPI{{ id }}->CR2 &= ~interrupt.value;
+	SAI{{ id }}_Block_{{ sai_block }}->IMR &= ~interrupt.value;
 }
 
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::InterruptFlag_t inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::getInterruptFlags()
 {
-	return InterruptFlag_t(SPI{{ id }}->SR);
+	return InterruptFlag_t(SAI{{ id }}_Block_{{ sai_block }}->SR);
 }
 
 void inline
-modm::platform::SaiHal{{ id }}Block{{ sai_block }}::acknowledgeInterruptFlag(InterruptFlag_t /*flags*/)
+modm::platform::SaiHal{{ id }}Block{{ sai_block }}::acknowledgeInterruptFlag(InterruptFlag_t flags)
 {
-	// TODO: implement; see STM32F3 reference manual p. 736
-	// SPI{{ id }}->SR = flags.value;
+	SAI{{ id }}_Block_{{ sai_block }}->CLRFR = flags.value;
 }
 
 void inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::enableTransfer()
 {
-	SPI{{ id }}->CR1 |= SPI_CR1_SPE;
+	SAI{{ id }}_Block_{{ sai_block }}->CR1 |= SAI_xCR1_SAIEN;
 }
 
 void inline
 modm::platform::SaiHal{{ id }}Block{{ sai_block }}::disableTransfer()
 {
-	SPI{{ id }}->CR1 &= ~SPI_CR1_SPE;
+	SAI{{ id }}_Block_{{ sai_block }}->CR1 &= ~SAI_xCR1_SAIEN;
 	__DSB();
 }
 
