@@ -1,0 +1,21 @@
+<library>
+  <extends>modm:nucleo-f767zi</extends>
+  <options>
+    <option name="modm:build:build.path">build</option>
+    <option name="modm:tinyusb:device:port">fs</option>
+  </options>
+  <modules>
+    <module>modm:build:scons</module>
+    <module>modm:build:compilation_db</module>
+    <module>modm:tinyusb</module>
+    <module>modm:tinyusb:device:audio</module>
+    <module>modm:platform:sai:1</module>
+    <module>modm:processing:timer</module>
+    <module>modm:io</module>
+  </modules>
+  <!-- Debug output -->
+  <collectors>
+    <collect name="modm:build:cppdefines">CFG_TUSB_DEBUG=7</collect>
+    <collect name="modm:build:cppdefines">MODM_ASSERTION_INFO_HAS_DESCRIPTION=1</collect>
+  </collectors>
+</library>
