@@ -185,6 +185,6 @@ Abandoning...
 To trace the TinyUSB core, you can add `CFG_TUSB_DEBUG=3` to your CPP flags and
 the output will be forwarded to `MODM_LOG_DEBUG`.
 
-```
+```xml
 <collect name="modm:build:cppdefines">CFG_TUSB_DEBUG=3</collect>
 ```
