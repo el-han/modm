@@ -14,8 +14,8 @@
     <module>modm:io</module>
   </modules>
   <!-- Debug output -->
-  <collectors>
+  <!-- <collectors>
     <collect name="modm:build:cppdefines">CFG_TUSB_DEBUG=7</collect>
     <collect name="modm:build:cppdefines">MODM_ASSERTION_INFO_HAS_DESCRIPTION=1</collect>
-  </collectors>
+  </collectors> -->
 </library>
