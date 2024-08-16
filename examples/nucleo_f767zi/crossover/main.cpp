@@ -114,9 +114,13 @@ int main()
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
     // SAI1_Block_A->SLOTR = 0x00030200;
-    SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(2).value) |
+    SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(6).value) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1);
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN2) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN3) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5);
 
     // Enable FIFO request interrupt
     Sai::HalA::enableInterrupt(SaiBase::Interrupt::FIFORequest);
@@ -374,10 +378,10 @@ MODM_ISR(SAI1)
             Debug::reset();
             SAI1_Block_A->DR = (uint32_t)spk_buf[0];
             SAI1_Block_A->DR = (uint32_t)spk_buf[1];
-            // SAI1_Block_A->DR = spk_buf[0];
-            // SAI1_Block_A->DR = spk_buf[1];
-            // SAI1_Block_A->DR = spk_buf[0];
-            // SAI1_Block_A->DR = spk_buf[1];
+            SAI1_Block_A->DR = spk_buf[0];
+            SAI1_Block_A->DR = spk_buf[1];
+            SAI1_Block_A->DR = spk_buf[0];
+            SAI1_Block_A->DR = spk_buf[1];
         } else {
             Debug::set();
             SAI1_Block_A->DR = 0;
