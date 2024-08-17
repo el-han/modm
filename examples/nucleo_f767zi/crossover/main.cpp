@@ -61,9 +61,12 @@ void tud_resume_cb() { tmr.restart(1s); }
 // MACRO CONSTANT TYPEDEF PROTOTYPES
 //--------------------------------------------------------------------+
 
+// Buffer for speaker data
+int16_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 4];
+
 // List of supported sample rates
-const uint32_t sample_rates[] = {48000, 96000};
-uint32_t current_sample_rate  = 96000;
+const uint32_t sample_rates[] = {48000};
+uint32_t current_sample_rate  = 48000;
 
 #define N_SAMPLE_RATES  TU_ARRAY_SIZE(sample_rates)
 
@@ -114,13 +117,14 @@ int main()
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
     // SAI1_Block_A->SLOTR = 0x00030200;
-    SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(6).value) |
+    SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(7).value) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN2) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN3) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5);
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN6);
 
     // Enable FIFO request interrupt
     Sai::HalA::enableInterrupt(SaiBase::Interrupt::FIFORequest);
@@ -367,26 +371,23 @@ bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const * p_reque
 
 MODM_ISR(SAI1)
 {
-    // Buffer for speaker data
-    int16_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 4];
-
     // Check if interrupt is FIFORequest
     if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
         Freq::set();
-        spk_data_size = tud_audio_read((void*)spk_buf, 4);
         if (spk_data_size >= 4) {
             Debug::reset();
-            SAI1_Block_A->DR = (uint32_t)spk_buf[0];
-            SAI1_Block_A->DR = (uint32_t)spk_buf[1];
-            SAI1_Block_A->DR = spk_buf[0];
-            SAI1_Block_A->DR = spk_buf[1];
-            SAI1_Block_A->DR = spk_buf[0];
-            SAI1_Block_A->DR = spk_buf[1];
         } else {
             Debug::set();
-            SAI1_Block_A->DR = 0;
-            SAI1_Block_A->DR = 0;
         }
+        SAI1_Block_A->DR = spk_buf[0];
+        SAI1_Block_A->DR = spk_buf[1];
+        SAI1_Block_A->DR = spk_buf[0];
+        SAI1_Block_A->DR = spk_buf[1];
+        SAI1_Block_A->DR = spk_buf[0];
+        SAI1_Block_A->DR = spk_buf[1];
+        SAI1_Block_A->DR = spk_buf[0];
+        // SAI1_Block_A->DR = spk_buf[1];
+        spk_data_size = tud_audio_read((void*)spk_buf, 4);
         Freq::reset();
     }
 }
