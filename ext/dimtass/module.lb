@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2019, Niklas Hauser
+#
+# This file is part of the modm project.
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -----------------------------------------------------------------------------
+
+def init(module):
+    module.name = ":dsp-cpp-filters"
+    module.description = """
+# DSP filters in C++
+"""
+
+
+def prepare(module, options):
+    # TODO: check for FPU
+    # TODO: check FPU type - single precision or double precision
+    # if not options[":target"].has_driver("core:cortex-m*"):
+    #     return False
+    return True
+
+
+def build(env):
+    env.collect(":build:path.include", "modm/ext/dsp-cpp-filters/lib")
+    env.outbasepath = "modm/ext/dsp-cpp-filters"
+
+    env.copy("DSP-Cpp-filters/lib", "lib")

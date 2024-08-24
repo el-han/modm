@@ -79,6 +79,7 @@ tud_descriptor_device_cb(void)
 //--------------------------------------------------------------------+
 #define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + CFG_TUD_AUDIO * TUD_AUDIO_SPEAKER_STEREO_DESC_LEN)
 
+#define EPNUM_AUDIO_FB    0x01
 #define EPNUM_AUDIO_OUT   0x01
 #define EPNUM_AUDIO_INT   0x02
 
@@ -88,7 +89,7 @@ const uint8_t desc_configuration[] =
     TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 100),
 
     // Interface number, string index, EP Out & EP Int address, EP size
-    TUD_AUDIO_SPEAKER_STEREO_DESCRIPTOR(2, EPNUM_AUDIO_OUT, EPNUM_AUDIO_INT | 0x80)
+    TUD_AUDIO_SPEAKER_STEREO_DESCRIPTOR(2, EPNUM_AUDIO_OUT, EPNUM_AUDIO_INT | 0x80, EPNUM_AUDIO_FB | 0x80)
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR
@@ -121,7 +122,8 @@ tud_string_desc_arr[] =
   "modm",                         // 1: Manufacturer
   "UAC2 Speaker",                 // 2: Product
   NULL,                           // 3: Serials will use unique ID if possible
-  "Speakers"                      // 4: Audio Interface
+  "Speakers",                     // 4: Audio Interface
+  "Windows"                       // 5: ?
 };
 
 static uint16_t _desc_str[32 + 1];
@@ -144,10 +146,14 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
   }
   else
   {
+
+      // TU_LOG(3, "index: %d, sod %d, sod0: %d", index, sizeof(tud_string_desc_arr), sizeof(tud_string_desc_arr[0]));
       if (!(index < sizeof(tud_string_desc_arr) / sizeof(tud_string_desc_arr[0])))
           return NULL;
 
       const char* str = tud_string_desc_arr[index];
+
+      // TU_LOG(3, " str: %s\n", str);
 
       // Cap at max char
       chr_count = strlen(str);
