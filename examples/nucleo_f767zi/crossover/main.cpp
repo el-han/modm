@@ -10,12 +10,67 @@
  */
 
 #include <tusb.h>
+#include <so_butterworth_hpf.h>
+#include <so_butterworth_lpf.h>
 
 #include <cstdint>
 #include <modm/board.hpp>
 #include <modm/io.hpp>
 #include <modm/architecture/interface/assert.hpp>
 #include <modm/processing.hpp>
+
+
+volatile uint32_t current_sample = 0;
+int16_t samples[] = {
+    0,
+    267,
+    529,
+    783,
+    1023,
+    1246,
+    1447,
+    1623,
+    1772,
+    1891,
+    1977,
+    2029,
+    2047,
+    2029,
+    1977,
+    1891,
+    1772,
+    1623,
+    1447,
+    1246,
+    1023,
+    783,
+    529,
+    267,
+    0,
+    -267,
+    -529,
+    -783,
+    -1023,
+    -1246,
+    -1447,
+    -1623,
+    -1772,
+    -1891,
+    -1977,
+    -2029,
+    -2047,
+    -2029,
+    -1977,
+    -1891,
+    -1772,
+    -1623,
+    -1447,
+    -1246,
+    -1023,
+    -783,
+    -529,
+    -267,
+};
 
 enum
 {
@@ -33,6 +88,40 @@ enum
     VOLUME_CTRL_SILENCE = 0x8000,
 };
 using namespace Board;
+
+SO_BUTTERWORTH_LPF woofer_lpf_1_l;
+SO_BUTTERWORTH_LPF woofer_lpf_2_l;
+SO_BUTTERWORTH_LPF mid_lpf_1_l;
+SO_BUTTERWORTH_LPF mid_lpf_2_l;
+SO_BUTTERWORTH_HPF mid_hpf_1_l;
+SO_BUTTERWORTH_HPF mid_hpf_2_l;
+SO_BUTTERWORTH_HPF tweeter_hpf_1_l;
+SO_BUTTERWORTH_HPF tweeter_hpf_2_l;
+volatile double woofer_tmp_l = 0.0;
+volatile double woofer_sample_l = 0.0;
+volatile double mid_tmp0_l = 0.0;
+volatile double mid_tmp1_l = 0.0;
+volatile double mid_tmp2_l = 0.0;
+volatile double mid_sample_l = 0.0;
+volatile double tweeter_tmp_l = 0.0;
+volatile double tweeter_sample_l = 0.0;
+
+SO_BUTTERWORTH_LPF woofer_lpf_1_r;
+SO_BUTTERWORTH_LPF woofer_lpf_2_r;
+SO_BUTTERWORTH_LPF mid_lpf_1_r;
+SO_BUTTERWORTH_LPF mid_lpf_2_r;
+SO_BUTTERWORTH_HPF mid_hpf_1_r;
+SO_BUTTERWORTH_HPF mid_hpf_2_r;
+SO_BUTTERWORTH_HPF tweeter_hpf_1_r;
+SO_BUTTERWORTH_HPF tweeter_hpf_2_r;
+volatile double woofer_tmp_r = 0.0;
+volatile double woofer_sample_r = 0.0;
+volatile double mid_tmp0_r = 0.0;
+volatile double mid_tmp1_r = 0.0;
+volatile double mid_tmp2_r = 0.0;
+volatile double mid_sample_r = 0.0;
+volatile double tweeter_tmp_r = 0.0;
+volatile double tweeter_sample_r = 0.0;
 
 using Sai = SaiMaster1;
 
@@ -90,6 +179,30 @@ int main()
 {
     Board::initialize();
     Board::initializeUsbFs();
+
+    woofer_lpf_1_l.calculate_coeffs(150, 48000);
+    woofer_lpf_2_l.calculate_coeffs(150, 48000);
+
+    mid_hpf_1_l.calculate_coeffs(150, 48000);
+    mid_hpf_2_l.calculate_coeffs(150, 48000);
+
+    mid_lpf_1_l.calculate_coeffs(1130, 48000);
+    mid_lpf_2_l.calculate_coeffs(1130, 48000);
+
+    tweeter_hpf_1_l.calculate_coeffs(1130, 48000);
+    tweeter_hpf_2_l.calculate_coeffs(1130, 48000);
+
+    woofer_lpf_1_r.calculate_coeffs(150, 48000);
+    woofer_lpf_2_r.calculate_coeffs(150, 48000);
+
+    mid_hpf_1_r.calculate_coeffs(150, 48000);
+    mid_hpf_2_r.calculate_coeffs(150, 48000);
+
+    mid_lpf_1_r.calculate_coeffs(1130, 48000);
+    mid_lpf_2_r.calculate_coeffs(1130, 48000);
+
+    tweeter_hpf_1_r.calculate_coeffs(1130, 48000);
+    tweeter_hpf_2_r.calculate_coeffs(1130, 48000);
 
     Debug::setOutput(modm::Gpio::High);
     Freq::setOutput(modm::Gpio::High);
@@ -150,9 +263,65 @@ int main()
             MODM_LOG_DEBUG << "spk_data_size: " << (int)spk_data_size << modm::endl;
             spk_data_size_q = spk_data_size;
         }
+
+        // Debug::toggle();
     }
 
     return 0;
+}
+
+MODM_ISR(SAI1)
+{
+    // Check if interrupt is FIFORequest
+    if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
+        Freq::set();
+        // if (spk_data_size >= 4) {
+        //     Debug::reset();
+        // } else {
+        //     Debug::set();
+        // }
+        SAI1_Block_A->DR = (int32_t)woofer_sample_l;
+        SAI1_Block_A->DR = (int32_t)mid_sample_l;
+        SAI1_Block_A->DR = (int32_t)tweeter_sample_l;
+        SAI1_Block_A->DR = (int32_t)woofer_sample_r;
+        SAI1_Block_A->DR = (int32_t)mid_sample_r;
+        SAI1_Block_A->DR = (int32_t)tweeter_sample_r;
+        SAI1_Block_A->DR = (int32_t)(spk_buf[1]/32);
+        // SAI1_Block_A->DR = (int32_t)(samples[current_sample]);
+
+        Debug::set();
+        // SAI1_Block_A->DR = spk_buf[1];
+        spk_data_size = tud_audio_read((void*)spk_buf, 4);
+        Debug::reset();
+
+        woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
+        woofer_tmp_l = woofer_lpf_1_l.process(spk_buf[0]);
+
+        mid_sample_l = mid_lpf_2_l.process(mid_tmp2_l);
+        mid_tmp2_l = mid_lpf_1_l.process(mid_tmp1_l);
+
+        mid_tmp1_l = mid_hpf_2_l.process(mid_tmp0_l);
+        mid_tmp0_l = mid_hpf_1_l.process(spk_buf[0]);
+
+        tweeter_sample_l = tweeter_hpf_2_l.process(tweeter_tmp_l);
+        tweeter_tmp_l = tweeter_hpf_1_l.process(spk_buf[0]);
+
+        woofer_sample_r = woofer_lpf_2_r.process(woofer_tmp_r);
+        woofer_tmp_r = woofer_lpf_1_r.process(spk_buf[1]);
+
+        mid_sample_r = mid_lpf_2_r.process(mid_tmp2_r);
+        mid_tmp2_r = mid_lpf_1_r.process(mid_tmp1_r);
+
+        mid_tmp1_r = mid_hpf_2_r.process(mid_tmp0_r);
+        mid_tmp0_r = mid_hpf_1_r.process(spk_buf[1]);
+
+        tweeter_sample_r = tweeter_hpf_2_r.process(tweeter_tmp_r);
+        tweeter_tmp_r = tweeter_hpf_1_r.process(spk_buf[1]);
+
+        current_sample = (current_sample + 1) % (sizeof(samples) / sizeof(samples[0]));
+
+        Freq::reset();
+    }
 }
 
 // Helper for clock get requests
@@ -369,25 +538,11 @@ bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const * p_reque
     return true;
 }
 
-MODM_ISR(SAI1)
+void tud_audio_feedback_params_cb(uint8_t func_id, uint8_t alt_itf, audio_feedback_params_t* feedback_param)
 {
-    // Check if interrupt is FIFORequest
-    if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
-        Freq::set();
-        if (spk_data_size >= 4) {
-            Debug::reset();
-        } else {
-            Debug::set();
-        }
-        SAI1_Block_A->DR = spk_buf[0];
-        SAI1_Block_A->DR = spk_buf[1];
-        SAI1_Block_A->DR = spk_buf[0];
-        SAI1_Block_A->DR = spk_buf[1];
-        SAI1_Block_A->DR = spk_buf[0];
-        SAI1_Block_A->DR = spk_buf[1];
-        SAI1_Block_A->DR = spk_buf[0];
-        // SAI1_Block_A->DR = spk_buf[1];
-        spk_data_size = tud_audio_read((void*)spk_buf, 4);
-        Freq::reset();
-    }
+    (void)func_id;
+    (void)alt_itf;
+    // Set feedback method to fifo counting
+    feedback_param->method = AUDIO_FEEDBACK_METHOD_FIFO_COUNT;
+    feedback_param->sample_freq = current_sample_rate;
 }

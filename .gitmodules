@@ -49,3 +49,6 @@
 [submodule "ext/nlohmann/json"]
 	path = ext/nlohmann/json
 	url = https://github.com/modm-ext/json-partial.git
+[submodule "ext/dimtass/DSP-Cpp-filters"]
+	path = ext/dimtass/DSP-Cpp-filters
+	url = git@github.com:el-han/DSP-Cpp-filters.git
