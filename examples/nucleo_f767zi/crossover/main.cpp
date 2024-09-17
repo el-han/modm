@@ -133,25 +133,27 @@ using Sd = GpioOutputE6;
 using Debug = GpioOutputG0;
 using Freq = GpioOutputG1;
 
-modm::PeriodicTimer tmr{2.5s};
+// modm::PeriodicTimer tmr{2.5s};
 
-// Invoked when device is mounted
-void tud_mount_cb() { tmr.restart(1s); }
-// Invoked when device is unmounted
-void tud_umount_cb() { tmr.restart(250ms); }
-// Invoked when usb bus is suspended
-// remote_wakeup_en : if host allow us  to perform remote wakeup
-// Within 7ms, device must draw an average of current less than 2.5 mA from bus
-void tud_suspend_cb(bool) { tmr.restart(2.5s); }
-// Invoked when usb bus is resumed
-void tud_resume_cb() { tmr.restart(1s); }
+// // Invoked when device is mounted
+// void tud_mount_cb() { tmr.restart(1s); }
+// // Invoked when device is unmounted
+// void tud_umount_cb() { tmr.restart(250ms); }
+// // Invoked when usb bus is suspended
+// // remote_wakeup_en : if host allow us  to perform remote wakeup
+// // Within 7ms, device must draw an average of current less than 2.5 mA from bus
+// void tud_suspend_cb(bool) { tmr.restart(2.5s); }
+// // Invoked when usb bus is resumed
+// void tud_resume_cb() { tmr.restart(1s); }
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTOTYPES
 //--------------------------------------------------------------------+
 
 // Buffer for speaker data
-int16_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 4];
+int16_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2];
+
+bool running = false;
 
 // List of supported sample rates
 const uint32_t sample_rates[] = {48000};
@@ -168,7 +170,9 @@ int16_t volume[CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1];    // +1 for master chan
 
 // Speaker data size received in the last frame
 volatile int spk_data_size = 0;
-int spk_data_size_q = 0;
+volatile int spk_data_size_q = 0;
+volatile uint16_t spk_data_available = 0;
+volatile uint16_t spk_data_available_q = 0;
 // Resolution per format
 const uint8_t resolutions_per_format[CFG_TUD_AUDIO_FUNC_1_N_FORMATS] = {CFG_TUD_AUDIO_FUNC_1_FORMAT_1_RESOLUTION_RX};
 // Current resolution, update on format change
@@ -245,24 +249,35 @@ int main()
 
     tusb_init();
 
-    // Set SAIEN
-    Sai::HalA::enableTransfer();
+    // // Set SAIEN
+    // Sai::HalA::enableTransfer();
 
     while (true)
     {
         tud_task();
 
-        if (tmr.execute())
+        // if (tmr.execute())
+        // {
+        //     LedGreen::toggle();
+        //     // usb_stream << "Hello World from USB: " << (counter++) << "\r\n";
+        // }
+
+        spk_data_available = tud_audio_available();
+        if (running == false)
         {
-            LedGreen::toggle();
-            // usb_stream << "Hello World from USB: " << (counter++) << "\r\n";
+            if (spk_data_available > CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2)
+            {
+                // Set SAIEN
+                Sai::HalA::enableTransfer();
+                running = true;
+            }
         }
 
-        if (spk_data_size != spk_data_size_q)
-        {
-            MODM_LOG_DEBUG << "spk_data_size: " << (int)spk_data_size << modm::endl;
-            spk_data_size_q = spk_data_size;
-        }
+        // if (spk_data_available != spk_data_available_q)
+        // {
+        //     MODM_LOG_DEBUG << "spk_data_available: " << (int)spk_data_available << modm::endl;
+        //     spk_data_available_q = spk_data_available;
+        // }
 
         // Debug::toggle();
     }
@@ -286,12 +301,15 @@ MODM_ISR(SAI1)
         SAI1_Block_A->DR = (int32_t)woofer_sample_r;
         SAI1_Block_A->DR = (int32_t)mid_sample_r;
         SAI1_Block_A->DR = (int32_t)tweeter_sample_r;
-        SAI1_Block_A->DR = (int32_t)(spk_buf[1]/32);
+        SAI1_Block_A->DR = (int32_t)(spk_buf[0]/32);
         // SAI1_Block_A->DR = (int32_t)(samples[current_sample]);
 
         Debug::set();
         // SAI1_Block_A->DR = spk_buf[1];
-        spk_data_size = tud_audio_read((void*)spk_buf, 4);
+        // spk_data_available = tud_audio_available();
+
+        // if (spk_data_available > 192)
+            spk_data_size = tud_audio_read((void*)spk_buf, 4);
         Debug::reset();
 
         woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
@@ -546,3 +564,8 @@ void tud_audio_feedback_params_cb(uint8_t func_id, uint8_t alt_itf, audio_feedba
     feedback_param->method = AUDIO_FEEDBACK_METHOD_FIFO_COUNT;
     feedback_param->sample_freq = current_sample_rate;
 }
+
+// void tud_audio_fb_done_cb(uint8_t func_id) {
+//   (void) func_id;
+//   MODM_LOG_INFO << "Jetzt!" << modm::endl;
+// }
