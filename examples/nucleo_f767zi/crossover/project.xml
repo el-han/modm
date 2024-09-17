@@ -10,7 +10,9 @@
     <module>modm:dsp-cpp-filters</module>
     <module>modm:tinyusb</module>
     <module>modm:tinyusb:device:audio</module>
+    <module>modm:tinyusb:device:hid</module>
     <module>modm:platform:sai:1</module>
+    <module>modm:platform:clock</module>
     <module>modm:processing:timer</module>
     <module>modm:io</module>
   </modules>

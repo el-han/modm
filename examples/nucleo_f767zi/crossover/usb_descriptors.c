@@ -28,6 +28,7 @@
 // #include "bsp/board_api.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
+#include "common.h"
 
 /* A combination of interfaces must have a unique product id, since PC will save device driver after the first plug.
  * Same VID/PID with different interface e.g MSC (first), then CDC (later) will possibly cause system error on PC.
@@ -75,13 +76,40 @@ tud_descriptor_device_cb(void)
 }
 
 //--------------------------------------------------------------------+
+// HID Report Descriptor
+//--------------------------------------------------------------------+
+
+uint8_t const desc_hid_report[] =
+{
+  HID_USAGE_PAGE_N ( HID_USAGE_PAGE_VENDOR, 2   ),\
+  HID_USAGE        ( 0x01                       ),\
+  HID_COLLECTION   ( HID_COLLECTION_APPLICATION ),\
+  HID_USAGE       ( 0x02                                   ),\
+  HID_LOGICAL_MIN ( 0x00                                   ),\
+  HID_LOGICAL_MAX_N ( 0xff, 2                              ),\
+  HID_REPORT_SIZE ( 8                                      ),\
+  HID_REPORT_COUNT( sizeof(audio_debug_info_t)             ),\
+  HID_INPUT       ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),\
+  HID_COLLECTION_END
+};
+
+// Invoked when received GET HID REPORT DESCRIPTOR
+// Application return pointer to descriptor
+// Descriptor contents must exist long enough for transfer to complete
+uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf)
+{
+  (void) itf;
+  return desc_hid_report;
+}
+
+//--------------------------------------------------------------------+
 // Configuration Descriptor
 //--------------------------------------------------------------------+
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + CFG_TUD_AUDIO * TUD_AUDIO_SPEAKER_STEREO_DESC_LEN)
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + CFG_TUD_AUDIO * TUD_AUDIO_SPEAKER_STEREO_DESC_LEN + TUD_HID_DESC_LEN)
 
 #define EPNUM_AUDIO_FB    0x01
 #define EPNUM_AUDIO_OUT   0x01
-#define EPNUM_AUDIO_INT   0x02
+#define EPNUM_DEBUG       0x02
 
 const uint8_t desc_configuration[] =
 {
@@ -89,7 +117,10 @@ const uint8_t desc_configuration[] =
     TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 100),
 
     // Interface number, string index, EP Out & EP Int address, EP size
-    TUD_AUDIO_SPEAKER_STEREO_DESCRIPTOR(2, EPNUM_AUDIO_OUT, EPNUM_AUDIO_INT | 0x80, EPNUM_AUDIO_FB | 0x80)
+    TUD_AUDIO_SPEAKER_STEREO_DESCRIPTOR(2, EPNUM_AUDIO_OUT, EPNUM_AUDIO_FB | 0x80),
+
+    // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
+    TUD_HID_DESCRIPTOR(ITF_NUM_DEBUG, 0, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report), EPNUM_DEBUG | 0x80, CFG_TUD_HID_EP_BUFSIZE, 7)
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR
