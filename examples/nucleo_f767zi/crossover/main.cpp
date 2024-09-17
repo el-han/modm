@@ -19,6 +19,7 @@
 #include <modm/architecture/interface/assert.hpp>
 #include <modm/processing.hpp>
 
+#include "common.h"
 
 volatile uint32_t current_sample = 0;
 int16_t samples[] = {
@@ -72,21 +73,6 @@ int16_t samples[] = {
     -267,
 };
 
-enum
-{
-    VOLUME_CTRL_0_DB = 0,
-    VOLUME_CTRL_10_DB = 2560,
-    VOLUME_CTRL_20_DB = 5120,
-    VOLUME_CTRL_30_DB = 7680,
-    VOLUME_CTRL_40_DB = 10240,
-    VOLUME_CTRL_50_DB = 12800,
-    VOLUME_CTRL_60_DB = 15360,
-    VOLUME_CTRL_70_DB = 17920,
-    VOLUME_CTRL_80_DB = 20480,
-    VOLUME_CTRL_90_DB = 23040,
-    VOLUME_CTRL_100_DB = 25600,
-    VOLUME_CTRL_SILENCE = 0x8000,
-};
 using namespace Board;
 
 SO_BUTTERWORTH_LPF woofer_lpf_1_l;
@@ -153,6 +139,11 @@ using Freq = GpioOutputG1;
 // Buffer for speaker data
 int16_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2];
 
+// HID stuff
+void audio_debug_task(void);
+uint8_t current_alt_settings;
+uint16_t fifo_count;
+uint32_t fifo_count_avg;
 bool running = false;
 
 // List of supported sample rates
@@ -255,6 +246,7 @@ int main()
     while (true)
     {
         tud_task();
+        audio_debug_task();
 
         // if (tmr.execute())
         // {
@@ -553,6 +545,8 @@ bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const * p_reque
         current_resolution = resolutions_per_format[alt-1];
     }
 
+    current_alt_settings = alt;
+
     return true;
 }
 
@@ -569,3 +563,71 @@ void tud_audio_feedback_params_cb(uint8_t func_id, uint8_t alt_itf, audio_feedba
 //   (void) func_id;
 //   MODM_LOG_INFO << "Jetzt!" << modm::endl;
 // }
+
+bool tud_audio_rx_done_post_read_cb(uint8_t rhport, uint16_t n_bytes_received, uint8_t func_id, uint8_t ep_out, uint8_t cur_alt_setting)
+{
+  (void)rhport;
+  (void)n_bytes_received;
+  (void)func_id;
+  (void)ep_out;
+  (void)cur_alt_setting;
+
+  fifo_count = tud_audio_available();
+  // Same averaging method used in UAC2 class
+  fifo_count_avg = (uint32_t)(((uint64_t)fifo_count_avg * 63  + ((uint32_t)fifo_count << 16)) >> 6);
+
+  return true;
+}
+
+//--------------------------------------------------------------------+
+// HID interface for audio debug
+//--------------------------------------------------------------------+
+// Every 1ms, we will sent 1 debug information report
+void audio_debug_task(void)
+{
+  static auto start_ms = modm::Clock::now();
+  auto curr_ms = modm::Clock::now();
+  if ( start_ms == curr_ms ) return; // not enough time
+  start_ms = curr_ms;
+
+  audio_debug_info_t debug_info;
+  debug_info.sample_rate    = current_sample_rate;
+  debug_info.alt_settings   = current_alt_settings;
+  debug_info.fifo_size      = CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ;
+  debug_info.fifo_count     = fifo_count;
+  debug_info.fifo_count_avg = fifo_count_avg >> 16;
+  for (int i = 0; i < CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX + 1; i++)
+  {
+    debug_info.mute[i] = mute[i];
+    debug_info.volume[i] = volume[i];
+  }
+
+  if(tud_hid_ready())
+    tud_hid_report(0, &debug_info, sizeof(debug_info));
+}
+
+// Invoked when received GET_REPORT control request
+// Unused here
+uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
+{
+  // TODO not Implemented
+  (void) itf;
+  (void) report_id;
+  (void) report_type;
+  (void) buffer;
+  (void) reqlen;
+
+  return 0;
+}
+
+// Invoked when received SET_REPORT control request or
+// Unused here
+void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
+{
+  // This example doesn't use multiple report and report ID
+  (void) itf;
+  (void) report_id;
+  (void) report_type;
+  (void) buffer;
+  (void) bufsize;
+}

@@ -40,6 +40,7 @@ enum
 {
   ITF_NUM_AUDIO_CONTROL = 0,
   ITF_NUM_AUDIO_STREAMING_SPK,
+  ITF_NUM_DEBUG,
   ITF_NUM_TOTAL
 };
 
@@ -58,7 +59,7 @@ enum
     + TUD_AUDIO_DESC_CS_AS_ISO_EP_LEN\
     + TUD_AUDIO_DESC_STD_AS_ISO_FB_EP_LEN)
 
-#define TUD_AUDIO_SPEAKER_STEREO_DESCRIPTOR(_stridx, _epout, _epint, _epfb) \
+#define TUD_AUDIO_SPEAKER_STEREO_DESCRIPTOR(_stridx, _epout, _epfb) \
     /* Standard Interface Association Descriptor (IAD) */\
     TUD_AUDIO_DESC_IAD(/*_firstitf*/ ITF_NUM_AUDIO_CONTROL, /*_nitfs*/ ITF_NUM_TOTAL, /*_stridx*/ 0x00),\
     /* Standard AC Interface Descriptor(4.7.1) */\
