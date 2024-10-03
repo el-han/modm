@@ -28,6 +28,8 @@ namespace modm
 namespace platform
 {
 
+{% for sai_block in ['A', 'B'] %}
+
 /**
  * Serial audio interface (SAI{{ id }}).
  *
@@ -36,7 +38,7 @@ namespace platform
  * @author	Hannes Ellinger
  * @ingroup	modm_platform_sai modm_platform_sai_{{id}}
  */
-class SaiMaster{{ id }}
+class SaiMaster{{ id }}Block{{ sai_block }}
 {
 protected:
 	// `state` must be protected to allow access from SaiMasterDma subclass TODO still correct?
@@ -44,8 +46,7 @@ protected:
 	// Bit1: block transfer state
 	static inline uint8_t state{0};
 public:
-	using HalA = SaiHal{{ id }}BlockA;
-	using HalB = SaiHal{{ id }}BlockB;
+	using Hal = SaiHal{{ id }}Block{{ sai_block }};
 
 	// /// Spi Data Mode, Mode0 is the most common mode
 	// enum class
@@ -71,19 +72,36 @@ public:
 public:
 	template< class... Signals >
 	static void
-	connect()
+	connectTransmitter()
 	{
 		using Connector = GpioConnector<Peripheral::Sai{{ id }}, Signals...>;
-		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fsa>;  // TODO: Block A and B
-		using Sck = typename Connector::template GetSignal<Gpio::Signal::Sck>;
-		using Sd = typename Connector::template GetSignal<Gpio::Signal::Sd>;
-		using Mclk = typename Connector::template GetSignal<Gpio::Signal::Mck>;
+		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fs{{ sai_block.lower() }}>;
+		using Sck = typename Connector::template GetSignal<Gpio::Signal::Sck{{ sai_block.lower() }}>;
+		using Sd = typename Connector::template GetSignal<Gpio::Signal::Sd{{ sai_block.lower() }}>;
+		using Mclk = typename Connector::template GetSignal<Gpio::Signal::Mclk{{ sai_block.lower() }}>;
 
 		// Connector::disconnect();
 		Fs::setOutput(Gpio::OutputType::PushPull);
 		Sck::setOutput(Gpio::OutputType::PushPull);
 		Sd::setOutput(Gpio::OutputType::PushPull);
 		Mclk::setOutput(Gpio::OutputType::PushPull);
+		Connector::connect();
+	}
+	template< class... Signals >
+	static void
+	connectReceiver()
+	{
+		using Connector = GpioConnector<Peripheral::Sai{{ id }}, Signals...>;
+		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fs{{ sai_block.lower() }}>;
+		using Sck = typename Connector::template GetSignal<Gpio::Signal::Sck{{ sai_block.lower() }}>;
+		using Sd = typename Connector::template GetSignal<Gpio::Signal::Sd{{ sai_block.lower() }}>;
+		using Mclk = typename Connector::template GetSignal<Gpio::Signal::Mclk{{ sai_block.lower() }}>;
+
+		// Connector::disconnect();
+		Fs::setInput(Gpio::InputType::Floating);
+		Sck::setInput(Gpio::InputType::Floating);
+		Sd::setInput(Gpio::InputType::Floating);
+		Mclk::setInput(Gpio::InputType::Floating);
 		Connector::connect();
 	}
 
@@ -101,49 +119,9 @@ public:
 		// SaiHal{{ id }}::initialize(prescaler);
 		state = 0;
 	}
-
-	// static void
-	// setDataMode(DataMode mode)
-	// {
-	// 	SaiHal{{ id }}::disableTransfer();
-	// 	SaiHal{{ id }}::setDataMode(static_cast<SaiHal{{ id }}::DataMode>(mode));
-	// 	SaiHal{{ id }}::enableTransfer();
-	// }
-
-	// static void
-	// setDataOrder(DataOrder order)
-	// {
-	// 	SaiHal{{ id }}::disableTransfer();
-	// 	SaiHal{{ id }}::setDataOrder(static_cast<SaiHal{{ id }}::DataOrder>(order));
-	// 	SaiHal{{ id }}::enableTransfer();
-	// }
-	// static void
-	// setDataSize(DataSize size)
-	// {
-	// 	SaiHal{{ id }}::disableTransfer();
-	// 	SaiHal{{ id }}::setDataSize(static_cast<SaiHal{{ id }}::DataSize>(size));
-	// 	SaiHal{{ id }}::enableTransfer();
-	// }
-
-	// static uint8_t
-	// transferBlocking(uint8_t data)
-	// {
-	// 	return RF_CALL_BLOCKING(transfer(data));
-	// }
-
-	// static void
-	// transferBlocking(const uint8_t *tx, uint8_t *rx, std::size_t length)
-	// {
-	// 	RF_CALL_BLOCKING(transfer(tx, rx, length));
-	// }
-
-
-	// static modm::ResumableResult<uint8_t>
-	// transfer(uint8_t data);
-
-	// static modm::ResumableResult<void>
-	// transfer(const uint8_t *tx, uint8_t *rx, std::size_t length);
 };
+
+{% endfor %}
 
 } // namespace platform
 
