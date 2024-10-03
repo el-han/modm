@@ -1,0 +1,16 @@
+<library>
+  <extends>modm:nucleo-f767zi</extends>
+  <options>
+    <option name="modm:build:build.path">build</option>
+    <option name="modm:tinyusb:device:port">fs</option>
+  </options>
+  <modules>
+    <module>modm:build:scons</module>
+    <module>modm:build:compilation_db</module>
+    <module>modm:dsp-cpp-filters</module>
+    <module>modm:platform:sai:1</module>
+    <module>modm:platform:clock</module>
+    <module>modm:processing:timer</module>
+    <module>modm:io</module>
+  </modules>
+</library>
