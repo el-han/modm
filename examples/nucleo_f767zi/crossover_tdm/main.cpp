@@ -38,6 +38,9 @@ SO_BUTTERWORTH_HPF mid_hpf_2_r;
 SO_BUTTERWORTH_HPF tweeter_hpf_1_r;
 SO_BUTTERWORTH_HPF tweeter_hpf_2_r;
 
+volatile int32_t input_sample_l;
+volatile int32_t input_sample_r;
+
 volatile double woofer_tmp_l = 0.0;
 volatile double woofer_sample_l = 0.0;
 volatile double mid_tmp0_l = 0.0;
@@ -151,8 +154,7 @@ int main()
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN2) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN3) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN6);
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5);
     MODM_LOG_INFO << "A SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SLOTR << modm::endl;
 
     // SAI1_Block_B->CR1 = 0x00200280;
@@ -161,7 +163,7 @@ int main()
                         static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
                         static_cast<uint32_t>(SaiBase::Mode::SlaveReceiver);
     MODM_LOG_INFO << "B CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR1 << modm::endl;
-    SAI1_Block_B->CR2 = 0x00000001;
+    SAI1_Block_B->CR2 = 0x00000003;
     MODM_LOG_INFO << "B CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR2 << modm::endl;
     // SAI1_Block_B->FRCR = 0x0006007f;
     SAI1_Block_B->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
@@ -172,7 +174,11 @@ int main()
     // SAI1_Block_B->SLOTR = 0x007f0700;
     SAI1_Block_B->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(8-1).value) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1);
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN2) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN3) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5);
     MODM_LOG_INFO << "B SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SLOTR << modm::endl;
 
     // Enable FIFO request interrupt
@@ -207,16 +213,22 @@ MODM_ISR(SAI1)
         Debug::set();
         LedGreen::toggle();
 
-        int32_t input_sample_l = SAI1_Block_B->DR;
-        int32_t input_sample_r = SAI1_Block_B->DR;
+        // read 6 slots from receiver
+        int32_t dummy;
+        input_sample_l = SAI1_Block_B->DR;
+        input_sample_r = SAI1_Block_B->DR;
+        dummy = SAI1_Block_B->DR;
+        dummy = SAI1_Block_B->DR;
+        dummy = SAI1_Block_B->DR;
+        dummy = SAI1_Block_B->DR;
 
+        // write 7 slots to transmitter
         SAI1_Block_A->DR = (int32_t)woofer_sample_l;
         SAI1_Block_A->DR = (int32_t)mid_sample_l;
         SAI1_Block_A->DR = (int32_t)tweeter_sample_l;
         SAI1_Block_A->DR = (int32_t)woofer_sample_r;
         SAI1_Block_A->DR = (int32_t)mid_sample_r;
         SAI1_Block_A->DR = (int32_t)tweeter_sample_r;
-        SAI1_Block_A->DR = input_sample_l;
 
         woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
         woofer_tmp_l = woofer_lpf_1_l.process((double)input_sample_l);
