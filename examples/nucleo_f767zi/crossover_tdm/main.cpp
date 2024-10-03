@@ -161,7 +161,7 @@ int main()
                         static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
                         static_cast<uint32_t>(SaiBase::Mode::SlaveReceiver);
     MODM_LOG_INFO << "B CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR1 << modm::endl;
-    SAI1_Block_B->CR2 = 0x00000000;
+    SAI1_Block_B->CR2 = 0x00000001;
     MODM_LOG_INFO << "B CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR2 << modm::endl;
     // SAI1_Block_B->FRCR = 0x0006007f;
     SAI1_Block_B->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
@@ -177,7 +177,7 @@ int main()
 
     // Enable FIFO request interrupt
     SaiB::Hal::enableInterrupt(SaiBase::Interrupt::FIFORequest);
-    MODM_LOG_INFO << "IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->IMR << modm::endl;
+    MODM_LOG_INFO << "B IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->IMR << modm::endl;
     SaiB::Hal::enableInterruptVector(true, 10);
 
     // Set SAIEN
@@ -191,6 +191,8 @@ int main()
         {
             // LedGreen::toggle();
             MODM_LOG_INFO << "Hello World digital crossover" << modm::endl;
+            MODM_LOG_INFO << "A SR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SR << modm::endl;
+            MODM_LOG_INFO << "B SR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SR << modm::endl;
         }
     }
 
