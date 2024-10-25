@@ -1,13 +1,10 @@
 # Install python3 HID package https://pypi.org/project/hid/
-# Install python3 matplotlib package https://pypi.org/project/matplotlib/
 
 import ctypes
 try:
     import hid
-    import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
 except ModuleNotFoundError:
-    print("Missing import, please try 'pip install hid matplotlib' or consult your OS's python package manager.")
+    print("Missing import, please try 'pip install hid' or consult your OS's python package manager.")
     exit(1)
 
 # Example must be compiled with CFG_AUDIO_DEBUG=1
@@ -32,21 +29,19 @@ dev = hid.Device(VID, PID)
 
 if dev:
     # Create figure for plotting
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(1, 1, 1)
     fifo_avg = []
     fifo_cnt = []
 
     # This function is called periodically from FuncAnimation
-    def animate(i):
+    while True:
         info = None
         for i in range(30):
             try:
                 str_in = dev.read(64, 50)
                 info = audio_debug_info_t.from_buffer_copy(str_in)
 
-                global fifo_avg
-                global fifo_cnt
                 fifo_avg.append(info.fifo_count_avg)
                 fifo_cnt.append(info.fifo_count)
             except Exception:
@@ -57,19 +52,8 @@ if dev:
         fifo_cnt = fifo_cnt[-1000:]
 
         if info is not None:
-            # Draw x and y lists
-            ax.clear()
-            ax.plot(fifo_cnt, label='FIFO count')
-            ax.plot(fifo_avg, label='FIFO average')
-            ax.legend()
-            ax.set_ylim(bottom=0, top=info.fifo_size)
+            print(f'FIFO size:{info.fifo_size} | FIFO count:{info.fifo_count}')
 
-            # Format plot
-            plt.title('FIFO information')
-            plt.grid()
-
-            print(f'Sample rate:{info.sample_rate} | Alt settings:{info.alt_settings} | Volume:{info.volume[:]}')
-
-    ani = animation.FuncAnimation(fig, animate, interval=10)
-    plt.show()
+    # ani = animation.FuncAnimation(fig, animate, interval=10)
+    # plt.show()
     print('done')

@@ -174,17 +174,15 @@ int main()
     // SAI1_Block_B->SLOTR = 0x007f0700;
     SAI1_Block_B->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(8-1).value) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN2) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN3) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5);
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1);
     MODM_LOG_INFO << "B SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SLOTR << modm::endl;
 
     // Enable FIFO request interrupt
-    SaiB::Hal::enableInterrupt(SaiBase::Interrupt::FIFORequest);
-    MODM_LOG_INFO << "B IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->IMR << modm::endl;
-    SaiB::Hal::enableInterruptVector(true, 10);
+    SaiA::Hal::enableInterrupt(SaiBase::Interrupt::FIFORequest);
+    // SaiA::Hal::enableInterrupt(SaiBase::Interrupt::AnticipatedFrameSynchronizationDetection);
+    // SaiA::Hal::enableInterrupt(SaiBase::Interrupt::LateFrameSynchronizationDetection);
+    MODM_LOG_INFO << "B IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->IMR << modm::endl;
+    SaiA::Hal::enableInterruptVector(true, 10);
 
     // Set SAIEN
     SaiA::Hal::enableTransfer();
@@ -208,19 +206,10 @@ int main()
 MODM_ISR(SAI1)
 {
     // Check if interrupt is FIFORequest
-    if ( (SAI1_Block_B->SR & (1 << 3)) != 0) {
+    if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
 
         Debug::set();
         LedGreen::toggle();
-
-        // read 6 slots from receiver
-        int32_t dummy;
-        input_sample_l = SAI1_Block_B->DR;
-        input_sample_r = SAI1_Block_B->DR;
-        dummy = SAI1_Block_B->DR;
-        dummy = SAI1_Block_B->DR;
-        dummy = SAI1_Block_B->DR;
-        dummy = SAI1_Block_B->DR;
 
         // write 7 slots to transmitter
         SAI1_Block_A->DR = (int32_t)woofer_sample_l;
@@ -229,6 +218,10 @@ MODM_ISR(SAI1)
         SAI1_Block_A->DR = (int32_t)woofer_sample_r;
         SAI1_Block_A->DR = (int32_t)mid_sample_r;
         SAI1_Block_A->DR = (int32_t)tweeter_sample_r;
+
+        // read 6 slots from receiver
+        input_sample_l = SAI1_Block_B->DR;
+        input_sample_r = SAI1_Block_B->DR;
 
         woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
         woofer_tmp_l = woofer_lpf_1_l.process((double)input_sample_l);
@@ -256,4 +249,8 @@ MODM_ISR(SAI1)
 
         Debug::reset();
     }
+    // if ( (SAI1_Block_A->SR & (3 << 5)) != 0) {
+    //     Debug::set();
+    //     SAI1_Block_A->CLRFR |= (3 << 5);
+    // }
 }

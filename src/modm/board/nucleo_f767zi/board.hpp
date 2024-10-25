@@ -98,11 +98,11 @@ struct SystemClock
 		Rcc::enablePll(Rcc::PllSource::ExternalClock, pllFactors);
 
 		const Rcc::PllSaiFactors pllSaiFactors{
-			.pllSaiN = 96,	//   2MHz * N= 96 -> 192MHz
-			.pllSaiP = 4,	// 192MHz / P=  4 ->  48MHz = F_usb
+			.pllSaiN = 144,	//   2MHz * N= 144 -> 288MHz
+			.pllSaiP = 6,	// 288MHz / P=   6 ->  48MHz = F_usb
+			// .pllSaiQ = 23,	// 192MHz / Q=   1 -> 192MHz = F_sai
 		};
 		Rcc::enablePllSai(pllSaiFactors);
-		Rcc::enablePll(Rcc::PllSource::ExternalClock, pllFactors);
 
 		// Required for 216 MHz operation
 		Rcc::enableOverdriveMode();
