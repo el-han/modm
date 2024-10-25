@@ -16,62 +16,24 @@
 #include <cstdint>
 #include <modm/board.hpp>
 #include <modm/io.hpp>
+#include <modm/architecture/driver/atomic/queue.hpp>
 #include <modm/architecture/interface/assert.hpp>
 #include <modm/processing.hpp>
 
 #include "common.h"
 
-volatile uint32_t current_sample = 0;
-int16_t samples[] = {
-    0,
-    267,
-    529,
-    783,
-    1023,
-    1246,
-    1447,
-    1623,
-    1772,
-    1891,
-    1977,
-    2029,
-    2047,
-    2029,
-    1977,
-    1891,
-    1772,
-    1623,
-    1447,
-    1246,
-    1023,
-    783,
-    529,
-    267,
-    0,
-    -267,
-    -529,
-    -783,
-    -1023,
-    -1246,
-    -1447,
-    -1623,
-    -1772,
-    -1891,
-    -1977,
-    -2029,
-    -2047,
-    -2029,
-    -1977,
-    -1891,
-    -1772,
-    -1623,
-    -1447,
-    -1246,
-    -1023,
-    -783,
-    -529,
-    -267,
-};
+typedef struct {
+    int32_t channel0;
+    int32_t channel1;
+    int32_t channel2;
+    int32_t channel3;
+    int32_t channel4;
+    int32_t channel5;
+    int32_t channel6;
+    int32_t channel7;
+} sample_t;
+
+static modm::atomic::Queue<sample_t, 16> audio_buffer;
 
 using namespace Board;
 
@@ -109,7 +71,7 @@ volatile double mid_sample_r = 0.0;
 volatile double tweeter_tmp_r = 0.0;
 volatile double tweeter_sample_r = 0.0;
 
-using Sai = SaiMaster1;
+using Sai = SaiMaster1BlockA;
 
 using Mclk = GpioOutputE2;
 using Fs = GpioOutputE4;
@@ -137,7 +99,7 @@ using Freq = GpioOutputG1;
 //--------------------------------------------------------------------+
 
 // Buffer for speaker data
-int16_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2];
+int16_t spk_buf[10 * CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX];
 
 // HID stuff
 void audio_debug_task(void);
@@ -219,12 +181,16 @@ int main()
                         static_cast<uint32_t>(SaiBase::MasterClockDivider::Div4) |
                         static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
                         static_cast<uint32_t>(SaiBase::Mode::MasterTransmitter);
+    MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR1 << modm::endl;
     SAI1_Block_A->CR2 = 0x00000000;
-    // SAI1_Block_A->FRCR = 0x0006001f;
+    MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR2 << modm::endl;
+    // SAI1_Block_A->FRCR = 0x0006007f;
     SAI1_Block_A->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
-    // SAI1_Block_A->SLOTR = 0x00030200;
+
+    MODM_LOG_INFO << "FRCR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->FRCR << modm::endl;
+    // SAI1_Block_A->SLOTR = 0x007f0700;
     SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(7).value) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1) |
@@ -233,10 +199,18 @@ int main()
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN6);
+    MODM_LOG_INFO << "SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SLOTR << modm::endl;
 
     // Enable FIFO request interrupt
     Sai::HalA::enableInterrupt(SaiBase::Interrupt::FIFORequest);
+    MODM_LOG_INFO << "IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->IMR << modm::endl;
     Sai::HalA::enableInterruptVector(true, 10);
+
+    // // Set priority for the interrupt vector
+    // NVIC_SetPriority(SAI1_IRQn, priority);
+    // // register IRQ at the NVIC
+    // NVIC_EnableIRQ(SAI1_IRQn);
+    // void SAI1_IRQHandler(void)
 
     tusb_init();
 
@@ -248,21 +222,66 @@ int main()
         tud_task();
         audio_debug_task();
 
+        if (audio_buffer.isNearlyEmpty())
+        {
+
+            tud_audio_read((void*)spk_buf, 10*CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX * CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX);
+            for (int i=0; i<10; i++)
+            {
+                woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
+                woofer_tmp_l = woofer_lpf_1_l.process(spk_buf[i]);
+
+                mid_sample_l = mid_lpf_2_l.process(mid_tmp2_l);
+                mid_tmp2_l = mid_lpf_1_l.process(mid_tmp1_l);
+
+                mid_tmp1_l = mid_hpf_2_l.process(mid_tmp0_l);
+                mid_tmp0_l = mid_hpf_1_l.process(spk_buf[i]);
+
+                tweeter_sample_l = tweeter_hpf_2_l.process(tweeter_tmp_l);
+                tweeter_tmp_l = tweeter_hpf_1_l.process(spk_buf[i]);
+
+                woofer_sample_r = woofer_lpf_2_r.process(woofer_tmp_r);
+                woofer_tmp_r = woofer_lpf_1_r.process(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+
+                mid_sample_r = mid_lpf_2_r.process(mid_tmp2_r);
+                mid_tmp2_r = mid_lpf_1_r.process(mid_tmp1_r);
+
+                mid_tmp1_r = mid_hpf_2_r.process(mid_tmp0_r);
+                mid_tmp0_r = mid_hpf_1_r.process(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+
+                tweeter_sample_r = tweeter_hpf_2_r.process(tweeter_tmp_r);
+                tweeter_tmp_r = tweeter_hpf_1_r.process(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+
+                sample_t sample = {
+                    (int32_t)woofer_sample_l,
+                    (int32_t)mid_sample_l,
+                    (int32_t)tweeter_sample_l,
+                    (int32_t)woofer_sample_r,
+                    (int32_t)mid_sample_r,
+                    (int32_t)tweeter_sample_r,
+                    (int32_t)(spk_buf[i]/32),
+                    (int32_t)(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]/32)
+                };
+                audio_buffer.push(sample);
+            }
+        }
+
         // if (tmr.execute())
         // {
         //     LedGreen::toggle();
         //     // usb_stream << "Hello World from USB: " << (counter++) << "\r\n";
         // }
 
-        spk_data_available = tud_audio_available();
+        // spk_data_available = tud_audio_available();
         if (running == false)
         {
-            if (spk_data_available > CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2)
-            {
+            // if (spk_data_available > CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 8)
+            // {
                 // Set SAIEN
                 Sai::HalA::enableTransfer();
+                MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR1 << modm::endl;
                 running = true;
-            }
+            // }
         }
 
         // if (spk_data_available != spk_data_available_q)
@@ -281,54 +300,20 @@ MODM_ISR(SAI1)
 {
     // Check if interrupt is FIFORequest
     if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
+
         Freq::set();
-        // if (spk_data_size >= 4) {
-        //     Debug::reset();
-        // } else {
-        //     Debug::set();
-        // }
-        SAI1_Block_A->DR = (int32_t)woofer_sample_l;
-        SAI1_Block_A->DR = (int32_t)mid_sample_l;
-        SAI1_Block_A->DR = (int32_t)tweeter_sample_l;
-        SAI1_Block_A->DR = (int32_t)woofer_sample_r;
-        SAI1_Block_A->DR = (int32_t)mid_sample_r;
-        SAI1_Block_A->DR = (int32_t)tweeter_sample_r;
-        SAI1_Block_A->DR = (int32_t)(spk_buf[0]/32);
-        // SAI1_Block_A->DR = (int32_t)(samples[current_sample]);
 
-        Debug::set();
-        // SAI1_Block_A->DR = spk_buf[1];
-        // spk_data_available = tud_audio_available();
+        sample_t sample = audio_buffer.get();
 
-        // if (spk_data_available > 192)
-            spk_data_size = tud_audio_read((void*)spk_buf, 4);
-        Debug::reset();
+        SAI1_Block_A->DR = sample.channel0;
+        SAI1_Block_A->DR = sample.channel1;
+        SAI1_Block_A->DR = sample.channel2;
+        SAI1_Block_A->DR = sample.channel3;
+        SAI1_Block_A->DR = sample.channel4;
+        SAI1_Block_A->DR = sample.channel5;
+        SAI1_Block_A->DR = sample.channel6;
 
-        woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
-        woofer_tmp_l = woofer_lpf_1_l.process(spk_buf[0]);
-
-        mid_sample_l = mid_lpf_2_l.process(mid_tmp2_l);
-        mid_tmp2_l = mid_lpf_1_l.process(mid_tmp1_l);
-
-        mid_tmp1_l = mid_hpf_2_l.process(mid_tmp0_l);
-        mid_tmp0_l = mid_hpf_1_l.process(spk_buf[0]);
-
-        tweeter_sample_l = tweeter_hpf_2_l.process(tweeter_tmp_l);
-        tweeter_tmp_l = tweeter_hpf_1_l.process(spk_buf[0]);
-
-        woofer_sample_r = woofer_lpf_2_r.process(woofer_tmp_r);
-        woofer_tmp_r = woofer_lpf_1_r.process(spk_buf[1]);
-
-        mid_sample_r = mid_lpf_2_r.process(mid_tmp2_r);
-        mid_tmp2_r = mid_lpf_1_r.process(mid_tmp1_r);
-
-        mid_tmp1_r = mid_hpf_2_r.process(mid_tmp0_r);
-        mid_tmp0_r = mid_hpf_1_r.process(spk_buf[1]);
-
-        tweeter_sample_r = tweeter_hpf_2_r.process(tweeter_tmp_r);
-        tweeter_tmp_r = tweeter_hpf_1_r.process(spk_buf[1]);
-
-        current_sample = (current_sample + 1) % (sizeof(samples) / sizeof(samples[0]));
+        audio_buffer.pop();
 
         Freq::reset();
     }
