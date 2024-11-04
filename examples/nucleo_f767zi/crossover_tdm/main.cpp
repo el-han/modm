@@ -214,20 +214,20 @@ MODM_ISR(SAI1)
         LedGreen::toggle();
 
         // write 6 slots to transmitter
-        SAI1_Block_B->DR = (int32_t)(woofer_sample_l / 16);
-        SAI1_Block_B->DR = (int32_t)(mid_sample_l / 32);
-        SAI1_Block_B->DR = (int32_t)(tweeter_sample_l / 40);
-        SAI1_Block_B->DR = (int32_t)(woofer_sample_r / 16);
-        SAI1_Block_B->DR = (int32_t)(mid_sample_r / 32);
-        SAI1_Block_B->DR = (int32_t)(tweeter_sample_r / 40);
+        SAI1_Block_B->DR = (int32_t)(woofer_sample_l / 16.0);
+        SAI1_Block_B->DR = (int32_t)(mid_sample_l / 64.0);
+        SAI1_Block_B->DR = (int32_t)(tweeter_sample_l / 80.0);
+        SAI1_Block_B->DR = (int32_t)(woofer_sample_r / 16.0);
+        SAI1_Block_B->DR = (int32_t)(mid_sample_r / 64.0);
+        SAI1_Block_B->DR = (int32_t)(tweeter_sample_r / 80.0);
 
         // // write 6 slots to transmitter
-        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
-        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
-        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
-        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
-        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
-        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l / 16.0);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l / 16.0);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l / 16.0);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_r / 16.0);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_r / 16.0);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_r / 16.0);
 
         // read 2 slots from receiver
         input_sample_l = ((int16_t)SAI1_Block_A->DR);
