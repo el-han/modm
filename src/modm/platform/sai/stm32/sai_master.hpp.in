@@ -72,7 +72,7 @@ public:
 public:
 	template< class... Signals >
 	static void
-	connectTransmitter()
+	connectMasterTransmitter()
 	{
 		using Connector = GpioConnector<Peripheral::Sai{{ id }}, Signals...>;
 		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fs{{ sai_block.lower() }}>;
@@ -89,7 +89,24 @@ public:
 	}
 	template< class... Signals >
 	static void
-	connectReceiver()
+	connectSlaveTransmitter()
+	{
+		using Connector = GpioConnector<Peripheral::Sai{{ id }}, Signals...>;
+		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fs{{ sai_block.lower() }}>;
+		using Sck = typename Connector::template GetSignal<Gpio::Signal::Sck{{ sai_block.lower() }}>;
+		using Sd = typename Connector::template GetSignal<Gpio::Signal::Sd{{ sai_block.lower() }}>;
+		// using Mclk = typename Connector::template GetSignal<Gpio::Signal::Mclk{{ sai_block.lower() }}>;
+
+		// Connector::disconnect();
+		Fs::setInput(Gpio::InputType::Floating);
+		Sck::setInput(Gpio::InputType::Floating);
+		Sd::setOutput(Gpio::OutputType::PushPull);
+		// Mclk::setInput(Gpio::InputType::Floating);
+		Connector::connect();
+	}
+	template< class... Signals >
+	static void
+	connectMasterReceiver()
 	{
 		using Connector = GpioConnector<Peripheral::Sai{{ id }}, Signals...>;
 		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fs{{ sai_block.lower() }}>;
@@ -98,10 +115,27 @@ public:
 		using Mclk = typename Connector::template GetSignal<Gpio::Signal::Mclk{{ sai_block.lower() }}>;
 
 		// Connector::disconnect();
+		Fs::setOutput(Gpio::OutputType::PushPull);
+		Sck::setOutput(Gpio::OutputType::PushPull);
+		Sd::setInput(Gpio::InputType::Floating);
+		Mclk::setOutput(Gpio::OutputType::PushPull);
+		Connector::connect();
+	}
+	template< class... Signals >
+	static void
+	connectSlaveReceiver()
+	{
+		using Connector = GpioConnector<Peripheral::Sai{{ id }}, Signals...>;
+		using Fs = typename Connector::template GetSignal<Gpio::Signal::Fs{{ sai_block.lower() }}>;
+		using Sck = typename Connector::template GetSignal<Gpio::Signal::Sck{{ sai_block.lower() }}>;
+		using Sd = typename Connector::template GetSignal<Gpio::Signal::Sd{{ sai_block.lower() }}>;
+		// using Mclk = typename Connector::template GetSignal<Gpio::Signal::Mclk{{ sai_block.lower() }}>;
+
+		// Connector::disconnect();
 		Fs::setInput(Gpio::InputType::Floating);
 		Sck::setInput(Gpio::InputType::Floating);
 		Sd::setInput(Gpio::InputType::Floating);
-		Mclk::setInput(Gpio::InputType::Floating);
+		// Mclk::setInput(Gpio::InputType::Floating);
 		Connector::connect();
 	}
 
