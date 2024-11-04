@@ -71,7 +71,7 @@ volatile double mid_sample_r = 0.0;
 volatile double tweeter_tmp_r = 0.0;
 volatile double tweeter_sample_r = 0.0;
 
-using Sai = SaiMaster1BlockA;
+using SaiB = SaiMaster1BlockB;
 
 using Mclk = GpioOutputE2;
 using Fs = GpioOutputE4;
@@ -164,7 +164,7 @@ int main()
     Debug::setOutput(modm::Gpio::High);
     Freq::setOutput(modm::Gpio::High);
 
-    Sai::connect<Mclk::Mclka, Fs::Fsa, Sck::Scka, Sd::Sda>();
+    SaiB::connectMasterTransmitter<Mclk::Mclka, Fs::Fsa, Sck::Scka, Sd::Sda>();
 
     // Use the logging streams to print some messages.
     // Change MODM_LOG_LEVEL above to enable or disable these messages
@@ -176,22 +176,22 @@ int main()
     Rcc::enable<Peripheral::Sai1>();
 
     SAI1->GCR = 0x00000000;
-    // SAI1_Block_A->CR1 = 0x00200280;
-    SAI1_Block_A->CR1 = static_cast<uint32_t>(SaiBase::DataSize::DataSize16Bit) |
+    // SAI1_Block_B->CR1 = 0x00200280;
+    SAI1_Block_B->CR1 = static_cast<uint32_t>(SaiBase::DataSize::DataSize16Bit) |
                         static_cast<uint32_t>(SaiBase::MasterClockDivider::Div4) |
                         static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
                         static_cast<uint32_t>(SaiBase::Mode::MasterTransmitter);
-    MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR1 << modm::endl;
-    SAI1_Block_A->CR2 = 0x00000000;
-    MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR2 << modm::endl;
-    // SAI1_Block_A->FRCR = 0x0006007f;
-    SAI1_Block_A->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
+    MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR1 << modm::endl;
+    SAI1_Block_B->CR2 = 0x00000000;
+    MODM_LOG_INFO << "CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR2 << modm::endl;
+    // SAI1_Block_B->FRCR = 0x0006007f;
+    SAI1_Block_B->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
 
-    MODM_LOG_INFO << "FRCR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->FRCR << modm::endl;
-    // SAI1_Block_A->SLOTR = 0x007f0700;
-    SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(7).value) |
+    MODM_LOG_INFO << "FRCR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->FRCR << modm::endl;
+    // SAI1_Block_B->SLOTR = 0x007f0700;
+    SAI1_Block_B->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(7).value) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN2) |
@@ -199,12 +199,12 @@ int main()
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN6);
-    MODM_LOG_INFO << "SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SLOTR << modm::endl;
+    MODM_LOG_INFO << "SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SLOTR << modm::endl;
 
     // Enable FIFO request interrupt
-    Sai::HalA::enableInterrupt(SaiBase::Interrupt::FIFORequest);
-    MODM_LOG_INFO << "IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->IMR << modm::endl;
-    Sai::HalA::enableInterruptVector(true, 10);
+    SaiB::Hal::enableInterrupt(SaiBase::Interrupt::FIFORequest);
+    MODM_LOG_INFO << "IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->IMR << modm::endl;
+    SaiB::Hal::enableInterruptVector(true, 10);
 
     // // Set priority for the interrupt vector
     // NVIC_SetPriority(SAI1_IRQn, priority);
@@ -215,7 +215,7 @@ int main()
     tusb_init();
 
     // // Set SAIEN
-    // Sai::HalA::enableTransfer();
+    // SaiB::Hal::enableTransfer();
 
     while (true)
     {
@@ -278,8 +278,8 @@ int main()
             // if (spk_data_available > CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 8)
             // {
                 // Set SAIEN
-                Sai::HalA::enableTransfer();
-                MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR1 << modm::endl;
+                SaiB::Hal::enableTransfer();
+                MODM_LOG_INFO << "CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR1 << modm::endl;
                 running = true;
             // }
         }
@@ -299,19 +299,19 @@ int main()
 MODM_ISR(SAI1)
 {
     // Check if interrupt is FIFORequest
-    if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
+    if ( (SAI1_Block_B->SR & (1 << 3)) != 0) {
 
         Freq::set();
 
         sample_t sample = audio_buffer.get();
 
-        SAI1_Block_A->DR = sample.channel0;
-        SAI1_Block_A->DR = sample.channel1;
-        SAI1_Block_A->DR = sample.channel2;
-        SAI1_Block_A->DR = sample.channel3;
-        SAI1_Block_A->DR = sample.channel4;
-        SAI1_Block_A->DR = sample.channel5;
-        SAI1_Block_A->DR = sample.channel6;
+        SAI1_Block_B->DR = sample.channel0;
+        SAI1_Block_B->DR = sample.channel1;
+        SAI1_Block_B->DR = sample.channel2;
+        SAI1_Block_B->DR = sample.channel3;
+        SAI1_Block_B->DR = sample.channel4;
+        SAI1_Block_B->DR = sample.channel5;
+        SAI1_Block_B->DR = sample.channel6;
 
         audio_buffer.pop();
 

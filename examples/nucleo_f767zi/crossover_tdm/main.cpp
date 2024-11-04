@@ -64,19 +64,19 @@ using SaiA = SaiMaster1BlockA;  // |  |      |
 using SaiB = SaiMaster1BlockB;  // +--+------+
                                 // |  | Gnd  |
                                 // +--+------+
-using Mclka = GpioOutputE2;     // |  | Mclk |  -+
+// using Mclka = GpioInputE2;      // |  | Mclk |  -+
                                 // +--+------+   |
-using Fsa = GpioOutputE4;       // |  |  Fs  |   |
+using Fsa = GpioInputE4;        // |  |  Fs  |   |
                                 // +--+------+ SAI_A
-using Scka = GpioOutputE5;      // |  | Sclk |   |
+using Scka = GpioInputE5;       // |  | Sclk |   |
                                 // +--+------+   |
-using Sda = GpioOutputE6;       // |  | Dout |  -+
+using Sda = GpioInputE6;        // |  | Dout |  -+
                                 // +--+------+
-using Sdb = GpioInputE3;        // |  | Din  |  -+
+using Sdb = GpioOutputE3;       // |  | Din  |  -+
                                 // +--+------+   |
 using Sckb = GpioInputF8;       // |  | Sclk |   |
                                 // +--+------+ SAI_B
-using Mclkb = GpioInputF7;      // |  | Mclk |   |
+// using Mclkb = GpioInputF7;      // |  | Mclk |   |
                                 // +--+------+   |
 using Fsb = GpioInputF9;        // |  | Fclk |  -+
                                 // +--+------+
@@ -119,8 +119,8 @@ int main()
 
     Debug::setOutput(modm::Gpio::High);
 
-    SaiA::connectTransmitter<Mclka::Mclka, Fsa::Fsa, Scka::Scka, Sda::Sda>();
-    SaiB::connectReceiver<Mclkb::Mclkb, Fsb::Fsb, Sckb::Sckb, Sdb::Sdb>();
+    SaiA::connectSlaveReceiver<Fsa::Fsa, Scka::Scka, Sda::Sda>();
+    SaiB::connectSlaveTransmitter<Fsb::Fsb, Sckb::Sckb, Sdb::Sdb>();
 
     // Use the logging streams to print some messages.
     // Change MODM_LOG_LEVEL above to enable or disable these messages
@@ -133,60 +133,61 @@ int main()
 
     SAI1->GCR = 0x00000020;
     MODM_LOG_INFO << "GCR: 0x" << modm::hex << (uint32_t)SAI1->GCR << modm::endl;
+
     // SAI1_Block_A->CR1 = 0x00200280;
     SAI1_Block_A->CR1 = static_cast<uint32_t>(SaiBase::DataSize::DataSize16Bit) |
-                        static_cast<uint32_t>(SaiBase::SyncEn::Internal) |
+                        static_cast<uint32_t>(SaiBase::SyncEn::Async) |
                         static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
-                        static_cast<uint32_t>(SaiBase::Mode::SlaveTransmitter);
-    MODM_LOG_INFO << "A CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR1 << modm::endl;
-    SAI1_Block_A->CR2 = 0x00000000;
-    MODM_LOG_INFO << "A CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR2 << modm::endl;
+                        static_cast<uint32_t>(SaiBase::Mode::SlaveReceiver);
+    MODM_LOG_INFO << "B CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR1 << modm::endl;
+    SAI1_Block_A->CR2 = 0x00000003;
+    MODM_LOG_INFO << "B CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_A->CR2 << modm::endl;
     // SAI1_Block_A->FRCR = 0x0006007f;
     SAI1_Block_A->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
                          static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
 
-    MODM_LOG_INFO << "A FRCR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->FRCR << modm::endl;
+    MODM_LOG_INFO << "B FRCR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->FRCR << modm::endl;
     // SAI1_Block_A->SLOTR = 0x007f0700;
     SAI1_Block_A->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(8-1).value) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
+                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1);
+    MODM_LOG_INFO << "B SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SLOTR << modm::endl;
+
+    // SAI1_Block_B->CR1 = 0x00200280;
+    SAI1_Block_B->CR1 = static_cast<uint32_t>(SaiBase::DataSize::DataSize16Bit) |
+                        static_cast<uint32_t>(SaiBase::SyncEn::Async) |
+                        static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
+                        static_cast<uint32_t>(SaiBase::Mode::SlaveTransmitter);
+    MODM_LOG_INFO << "A CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR1 << modm::endl;
+    SAI1_Block_B->CR2 = 0x00000000;
+    MODM_LOG_INFO << "A CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR2 << modm::endl;
+    // SAI1_Block_B->FRCR = 0x0006007f;
+    SAI1_Block_B->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
+                         static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
+                         static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
+
+    MODM_LOG_INFO << "A FRCR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->FRCR << modm::endl;
+    // SAI1_Block_B->SLOTR = 0x007f0700;
+    SAI1_Block_B->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(8-1).value) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN2) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN3) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN4) |
                           static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN5);
-    MODM_LOG_INFO << "A SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SLOTR << modm::endl;
-
-    // SAI1_Block_B->CR1 = 0x00200280;
-    SAI1_Block_B->CR1 = static_cast<uint32_t>(SaiBase::DataSize::DataSize16Bit) |
-                        static_cast<uint32_t>(SaiBase::SyncEn::Async) |
-                        static_cast<uint32_t>(SaiBase::ConfigurationRegister1::CKSTR) |
-                        static_cast<uint32_t>(SaiBase::Mode::SlaveReceiver);
-    MODM_LOG_INFO << "B CR1: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR1 << modm::endl;
-    SAI1_Block_B->CR2 = 0x00000003;
-    MODM_LOG_INFO << "B CR2: 0x" << modm::hex << (uint32_t)SAI1_Block_B->CR2 << modm::endl;
-    // SAI1_Block_B->FRCR = 0x0006007f;
-    SAI1_Block_B->FRCR = static_cast<uint32_t>(SaiBase::FrameLength_t(16*8-1).value) |
-                         static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSPOL) |
-                         static_cast<uint32_t>(SaiBase::FrameConfigurationRegister::FSOFF);
-
-    MODM_LOG_INFO << "B FRCR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->FRCR << modm::endl;
-    // SAI1_Block_B->SLOTR = 0x007f0700;
-    SAI1_Block_B->SLOTR = static_cast<uint32_t>(SaiBase::SlotNumber_t(8-1).value) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN0) |
-                          static_cast<uint32_t>(SaiBase::SlotRegister::SLOTEN1);
-    MODM_LOG_INFO << "B SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SLOTR << modm::endl;
+    MODM_LOG_INFO << "A SLOTR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SLOTR << modm::endl;
 
     // Enable FIFO request interrupt
-    SaiA::Hal::enableInterrupt(SaiBase::Interrupt::FIFORequest);
-    // SaiA::Hal::enableInterrupt(SaiBase::Interrupt::AnticipatedFrameSynchronizationDetection);
-    // SaiA::Hal::enableInterrupt(SaiBase::Interrupt::LateFrameSynchronizationDetection);
-    MODM_LOG_INFO << "B IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->IMR << modm::endl;
-    SaiA::Hal::enableInterruptVector(true, 10);
+    SaiB::Hal::enableInterrupt(SaiBase::Interrupt::FIFORequest);
+    // SaiB::Hal::enableInterrupt(SaiBase::Interrupt::AnticipatedFrameSynchronizationDetection);
+    // SaiB::Hal::enableInterrupt(SaiBase::Interrupt::LateFrameSynchronizationDetection);
+    MODM_LOG_INFO << "B IMR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->IMR << modm::endl;
+    SaiB::Hal::enableInterruptVector(true, 10);
 
     // Set SAIEN
-    SaiA::Hal::enableTransfer();
     SaiB::Hal::enableTransfer();
+    SaiA::Hal::enableTransfer();
 
     while (true)
     {
@@ -195,8 +196,9 @@ int main()
         {
             // LedGreen::toggle();
             MODM_LOG_INFO << "Hello World digital crossover" << modm::endl;
-            MODM_LOG_INFO << "A SR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SR << modm::endl;
-            MODM_LOG_INFO << "B SR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SR << modm::endl;
+            MODM_LOG_INFO << "A SR: 0x" << modm::hex << (uint32_t)SAI1_Block_B->SR << modm::endl;
+            MODM_LOG_INFO << "B SR: 0x" << modm::hex << (uint32_t)SAI1_Block_A->SR << modm::endl;
+            MODM_LOG_INFO << "left: 0x" << modm::hex << (uint32_t)input_sample_l << modm::endl;
         }
     }
 
@@ -206,22 +208,30 @@ int main()
 MODM_ISR(SAI1)
 {
     // Check if interrupt is FIFORequest
-    if ( (SAI1_Block_A->SR & (1 << 3)) != 0) {
+    if ( (SAI1_Block_B->SR & (1 << 3)) != 0) {
 
         Debug::set();
         LedGreen::toggle();
 
-        // write 7 slots to transmitter
-        SAI1_Block_A->DR = (int32_t)woofer_sample_l;
-        SAI1_Block_A->DR = (int32_t)mid_sample_l;
-        SAI1_Block_A->DR = (int32_t)tweeter_sample_l;
-        SAI1_Block_A->DR = (int32_t)woofer_sample_r;
-        SAI1_Block_A->DR = (int32_t)mid_sample_r;
-        SAI1_Block_A->DR = (int32_t)tweeter_sample_r;
+        // write 6 slots to transmitter
+        SAI1_Block_B->DR = (int32_t)(woofer_sample_l / 16);
+        SAI1_Block_B->DR = (int32_t)(mid_sample_l / 32);
+        SAI1_Block_B->DR = (int32_t)(tweeter_sample_l / 40);
+        SAI1_Block_B->DR = (int32_t)(woofer_sample_r / 16);
+        SAI1_Block_B->DR = (int32_t)(mid_sample_r / 32);
+        SAI1_Block_B->DR = (int32_t)(tweeter_sample_r / 40);
 
-        // read 6 slots from receiver
-        input_sample_l = SAI1_Block_B->DR;
-        input_sample_r = SAI1_Block_B->DR;
+        // // write 6 slots to transmitter
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
+        // SAI1_Block_B->DR = (int32_t)(input_sample_l);
+
+        // read 2 slots from receiver
+        input_sample_l = ((int16_t)SAI1_Block_A->DR);
+        input_sample_r = ((int16_t)SAI1_Block_A->DR);
 
         woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
         woofer_tmp_l = woofer_lpf_1_l.process((double)input_sample_l);
@@ -249,8 +259,8 @@ MODM_ISR(SAI1)
 
         Debug::reset();
     }
-    // if ( (SAI1_Block_A->SR & (3 << 5)) != 0) {
+    // if ( (SAI1_Block_B->SR & (3 << 5)) != 0) {
     //     Debug::set();
-    //     SAI1_Block_A->CLRFR |= (3 << 5);
+    //     SAI1_Block_B->CLRFR |= (3 << 5);
     // }
 }
