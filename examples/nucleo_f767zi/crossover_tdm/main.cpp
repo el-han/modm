@@ -64,7 +64,7 @@ using SaiA = SaiMaster1BlockA;  // |  |      |
 using SaiB = SaiMaster1BlockB;  // +--+------+
                                 // |  | Gnd  |
                                 // +--+------+
-// using Mclka = GpioInputE2;      // |  | Mclk |  -+
+// using Mclka = GpioInputE2;   // |  | Mclk |  -+
                                 // +--+------+   |
 using Fsa = GpioInputE4;        // |  |  Fs  |   |
                                 // +--+------+ SAI_A
@@ -76,7 +76,7 @@ using Sdb = GpioOutputE3;       // |  | Din  |  -+
                                 // +--+------+   |
 using Sckb = GpioInputF8;       // |  | Sclk |   |
                                 // +--+------+ SAI_B
-// using Mclkb = GpioInputF7;      // |  | Mclk |   |
+// using Mclkb = GpioInputF7;   // |  | Mclk |   |
                                 // +--+------+   |
 using Fsb = GpioInputF9;        // |  | Fclk |  -+
                                 // +--+------+
@@ -84,6 +84,16 @@ using Debug = GpioOutputG1;     // |  | Dbg  |
                                 // +--+------+
                                 //
                                 //    CN9
+
+
+using TwiMaster = I2cMaster1;   //    CN7
+                                //
+                                // +--+-----+  -+
+using TwiScl = GpioB8;          // |  | Scl |   |
+                                // +--+-----+  I2C
+using TwiSda = GpioB9;          // |  | Sda |   |
+                                // +--+-----+  -+
+                                // |  |     |
 
 bool running = false;
 
@@ -121,6 +131,9 @@ int main()
 
     SaiA::connectSlaveReceiver<Fsa::Fsa, Scka::Scka, Sda::Sda>();
     SaiB::connectSlaveTransmitter<Fsb::Fsb, Sckb::Sckb, Sdb::Sdb>();
+
+    TwiMaster::connect<TwiScl::Scl, TwiSda::Sda>(TwiMaster::PullUps::Internal);
+    TwiMaster::initialize<Board::SystemClock, 100_kHz, 10_pct>();
 
     // Use the logging streams to print some messages.
     // Change MODM_LOG_LEVEL above to enable or disable these messages
