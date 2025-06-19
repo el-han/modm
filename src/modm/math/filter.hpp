@@ -20,3 +20,8 @@
 #include "filter/ramp.hpp"
 #include "filter/s_curve_controller.hpp"
 #include "filter/s_curve_generator.hpp"
+#include "filter/biquad.hpp"
+#include "filter/so_butterworth_lpf.hpp"
+#include "filter/so_butterworth_hpf.hpp"
+#include "filter/lr4_lpf.hpp"
+#include "filter/lr4_hpf.hpp"
