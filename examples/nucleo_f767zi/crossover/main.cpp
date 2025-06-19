@@ -10,8 +10,6 @@
  */
 
 #include <tusb.h>
-#include <so_butterworth_hpf.h>
-#include <so_butterworth_lpf.h>
 
 #include <cstdint>
 #include <modm/board.hpp>
@@ -19,6 +17,7 @@
 #include <modm/architecture/driver/atomic/queue.hpp>
 #include <modm/architecture/interface/assert.hpp>
 #include <modm/processing.hpp>
+#include <modm/math/filter.hpp>
 
 #include "common.h"
 
@@ -37,38 +36,22 @@ static modm::atomic::Queue<sample_t, 16> audio_buffer;
 
 using namespace Board;
 
-SO_BUTTERWORTH_LPF woofer_lpf_1_l;
-SO_BUTTERWORTH_LPF woofer_lpf_2_l;
-SO_BUTTERWORTH_LPF mid_lpf_1_l;
-SO_BUTTERWORTH_LPF mid_lpf_2_l;
-SO_BUTTERWORTH_HPF mid_hpf_1_l;
-SO_BUTTERWORTH_HPF mid_hpf_2_l;
-SO_BUTTERWORTH_HPF tweeter_hpf_1_l;
-SO_BUTTERWORTH_HPF tweeter_hpf_2_l;
-volatile double woofer_tmp_l = 0.0;
+modm::filter::Lr4Lpf<double, 150.0, 4800.0> woofer_lpf_l;
+modm::filter::Lr4Hpf<double, 150.0, 4800.0> mid_hpf_l;
+modm::filter::Lr4Lpf<double, 1130.0, 4800.0> mid_lpf_l;
+modm::filter::Lr4Hpf<double, 1130.0, 4800.0> tweeter_hpf_l;
+
+modm::filter::Lr4Lpf<double, 150.0, 4800.0> woofer_lpf_r;
+modm::filter::Lr4Hpf<double, 150.0, 4800.0> mid_hpf_r;
+modm::filter::Lr4Lpf<double, 1130.0, 4800.0> mid_lpf_r;
+modm::filter::Lr4Hpf<double, 1130.0, 4800.0> tweeter_hpf_r;
+
 volatile double woofer_sample_l = 0.0;
-volatile double mid_tmp0_l = 0.0;
-volatile double mid_tmp1_l = 0.0;
-volatile double mid_tmp2_l = 0.0;
 volatile double mid_sample_l = 0.0;
-volatile double tweeter_tmp_l = 0.0;
 volatile double tweeter_sample_l = 0.0;
 
-SO_BUTTERWORTH_LPF woofer_lpf_1_r;
-SO_BUTTERWORTH_LPF woofer_lpf_2_r;
-SO_BUTTERWORTH_LPF mid_lpf_1_r;
-SO_BUTTERWORTH_LPF mid_lpf_2_r;
-SO_BUTTERWORTH_HPF mid_hpf_1_r;
-SO_BUTTERWORTH_HPF mid_hpf_2_r;
-SO_BUTTERWORTH_HPF tweeter_hpf_1_r;
-SO_BUTTERWORTH_HPF tweeter_hpf_2_r;
-volatile double woofer_tmp_r = 0.0;
 volatile double woofer_sample_r = 0.0;
-volatile double mid_tmp0_r = 0.0;
-volatile double mid_tmp1_r = 0.0;
-volatile double mid_tmp2_r = 0.0;
 volatile double mid_sample_r = 0.0;
-volatile double tweeter_tmp_r = 0.0;
 volatile double tweeter_sample_r = 0.0;
 
 using SaiB = SaiMaster1BlockB;
@@ -137,30 +120,6 @@ int main()
     Board::initialize();
     Board::initializeUsbFs();
 
-    woofer_lpf_1_l.calculate_coeffs(150, 48000);
-    woofer_lpf_2_l.calculate_coeffs(150, 48000);
-
-    mid_hpf_1_l.calculate_coeffs(150, 48000);
-    mid_hpf_2_l.calculate_coeffs(150, 48000);
-
-    mid_lpf_1_l.calculate_coeffs(1130, 48000);
-    mid_lpf_2_l.calculate_coeffs(1130, 48000);
-
-    tweeter_hpf_1_l.calculate_coeffs(1130, 48000);
-    tweeter_hpf_2_l.calculate_coeffs(1130, 48000);
-
-    woofer_lpf_1_r.calculate_coeffs(150, 48000);
-    woofer_lpf_2_r.calculate_coeffs(150, 48000);
-
-    mid_hpf_1_r.calculate_coeffs(150, 48000);
-    mid_hpf_2_r.calculate_coeffs(150, 48000);
-
-    mid_lpf_1_r.calculate_coeffs(1130, 48000);
-    mid_lpf_2_r.calculate_coeffs(1130, 48000);
-
-    tweeter_hpf_1_r.calculate_coeffs(1130, 48000);
-    tweeter_hpf_2_r.calculate_coeffs(1130, 48000);
-
     Debug::setOutput(modm::Gpio::High);
     Freq::setOutput(modm::Gpio::High);
 
@@ -228,29 +187,26 @@ int main()
             tud_audio_read((void*)spk_buf, 10*CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX * CFG_TUD_AUDIO_FUNC_1_N_CHANNELS_RX);
             for (int i=0; i<10; i++)
             {
-                woofer_sample_l = woofer_lpf_2_l.process(woofer_tmp_l);
-                woofer_tmp_l = woofer_lpf_1_l.process(spk_buf[i]);
+                woofer_lpf_l.update(spk_buf[i]);
+                woofer_sample_l = woofer_lpf_l.getValue();
 
-                mid_sample_l = mid_lpf_2_l.process(mid_tmp2_l);
-                mid_tmp2_l = mid_lpf_1_l.process(mid_tmp1_l);
+                mid_hpf_l.update(spk_buf[i]);
+                mid_lpf_l.update(mid_hpf_l.getValue());
+                mid_sample_l = mid_lpf_l.getValue();
 
-                mid_tmp1_l = mid_hpf_2_l.process(mid_tmp0_l);
-                mid_tmp0_l = mid_hpf_1_l.process(spk_buf[i]);
+                tweeter_hpf_l.update(spk_buf[i]);
+                tweeter_sample_l = tweeter_hpf_l.getValue();
 
-                tweeter_sample_l = tweeter_hpf_2_l.process(tweeter_tmp_l);
-                tweeter_tmp_l = tweeter_hpf_1_l.process(spk_buf[i]);
 
-                woofer_sample_r = woofer_lpf_2_r.process(woofer_tmp_r);
-                woofer_tmp_r = woofer_lpf_1_r.process(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+                woofer_lpf_r.update(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+                woofer_sample_r = woofer_lpf_r.getValue();
 
-                mid_sample_r = mid_lpf_2_r.process(mid_tmp2_r);
-                mid_tmp2_r = mid_lpf_1_r.process(mid_tmp1_r);
+                mid_hpf_r.update(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+                mid_lpf_r.update(mid_hpf_r.getValue());
+                mid_sample_r = mid_lpf_r.getValue();
 
-                mid_tmp1_r = mid_hpf_2_r.process(mid_tmp0_r);
-                mid_tmp0_r = mid_hpf_1_r.process(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
-
-                tweeter_sample_r = tweeter_hpf_2_r.process(tweeter_tmp_r);
-                tweeter_tmp_r = tweeter_hpf_1_r.process(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+                tweeter_hpf_r.update(spk_buf[i+CFG_TUD_AUDIO_FUNC_1_FORMAT_1_N_BYTES_PER_SAMPLE_RX]);
+                tweeter_sample_r = tweeter_hpf_r.getValue();
 
                 sample_t sample = {
                     (int32_t)woofer_sample_l,
